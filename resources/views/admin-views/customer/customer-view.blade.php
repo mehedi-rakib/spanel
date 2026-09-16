@@ -57,13 +57,13 @@
                                         <strong class="value {{ $customer->due_balance > 0 ? 'text-danger' : '' }}">
                                             {{setCurrencySymbol(amount: usdToDefaultCurrency(amount: $customer->due_balance))}}
                                         </strong>
-                                        @if($customer->due_balance > 0)
-                                            <button type="button" class="btn btn-sm btn-outline--primary ml-2" data-toggle="modal" data-target="#record-due-payment">
-                                                {{translate('record_payment')}}
-                                            </button>
-                                        @endif
                                     </li>
                                 </ul>
+                                @if($customer->due_balance > 0)
+                                    <button type="button" class="btn btn-sm btn-outline--primary mt-2" data-toggle="modal" data-target="#record-due-payment">
+                                        {{translate('record_payment')}}
+                                    </button>
+                                @endif
                             </div>
                         </div>
                     </div>

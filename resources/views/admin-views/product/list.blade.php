@@ -163,6 +163,7 @@
                                 <th>{{ translate('product Name') }}</th>
                                 <th class="text-center">{{ translate('product Type') }}</th>
                                 <th class="text-center">{{ translate('unit_price') }}</th>
+                                <th class="text-center">{{ translate('purchase_price') }}</th>
                                 <th class="text-center">{{ translate('show_as_featured') }}</th>
                                 <th class="text-center">{{ translate('active_status') }}</th>
                                 <th class="text-center">{{ translate('action') }}</th>
@@ -194,6 +195,9 @@
                                     </td>
                                     <td class="text-center">
                                         {{setCurrencySymbol(amount: usdToDefaultCurrency(amount: $product['unit_price']), currencyCode: getCurrencyCode()) }}
+                                    </td>
+                                    <td class="text-center">
+                                        {{setCurrencySymbol(amount: usdToDefaultCurrency(amount: $product['purchase_price']), currencyCode: getCurrencyCode()) }}
                                     </td>
                                     <td class="text-center">
 

@@ -32,7 +32,7 @@
                                 </a>
                             </div>
                             <div class="d-flex gap-1 flex-wrap justify-content-center">
-                                @if ($productActive && $isActive)
+                                @if ($productActive && $isActive && Route::has('product'))
                                     <a href="{{ route('product', $product['slug']) }}"
                                        class="btn btn-outline--primary mr-1 mt-2" target="_blank">
                                         <i class="tio-globe"></i>
