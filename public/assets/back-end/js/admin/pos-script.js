@@ -372,32 +372,30 @@ function basicFunctionalityForCartSummary() {
         if (event.which < 48 || event.which > 57) {
             event.preventDefault();
         }
-        let minimumAmount = $(this).attr('min');
+        let totalAmount = parseFloat($(this).data('total-amount'));
         let GivenAmount = parseFloat($(this).val());
         let currencyPosition = $(this).data('currency-position');
         let currencySymbol = $(this).data('currency-symbol');
 
-        console.log('minimumAmount ' + minimumAmount)
-        console.log('GivenAmount ' + GivenAmount)
+        if (!$(this).val() || isNaN(GivenAmount)) {
+            GivenAmount = 0;
+        }
 
-        if (GivenAmount >= minimumAmount) {
-            $(this).removeClass('border-danger');
+        function formatAmount(amount) {
+            return currencyPosition?.toString() === 'left' ? currencySymbol + amount : amount + currencySymbol;
+        }
+
+        let change = Math.max(GivenAmount - totalAmount, 0);
+        let due = Math.max(totalAmount - GivenAmount, 0);
+
+        $('.pos-change-amount-element').text(formatAmount(change));
+
+        if (due > 0) {
+            $('.pos-due-amount-section').removeClass('d-none');
+            $('.pos-due-amount-element').text(formatAmount(due));
         } else {
-            $(this).addClass('border-danger');
+            $('.pos-due-amount-section').addClass('d-none');
         }
-
-        let amount = GivenAmount - minimumAmount;
-        if(!$(this).val()) {
-            amount = 0;
-        }
-        let result = '';
-        if (currencyPosition?.toString() === 'left') {
-            result = currencySymbol + amount;
-        } else {
-            result = amount + currencySymbol;
-        }
-
-        $('.pos-change-amount-element').text(result);
     });
 }
 
@@ -406,18 +404,24 @@ posUpdateQuantityFunctionality();
 
 function checkedPaidAmount() {
     let paidAmount = $(".pos-paid-amount-element");
-    if ($('.paid-by-cash').prop('checked') && paidAmount.val() === '') {
-        toastr.error($("#message-enter-valid-amount").data("text"), {
-            CloseButton: true,
-            ProgressBar: true,
-        });
-        return false;
-    } else if ($('.paid-by-cash').prop('checked') && parseFloat(paidAmount.val()) < parseFloat(paidAmount.attr('min'))) {
-        toastr.error($("#message-less-than-total-amount").data("text"), {
-            CloseButton: true,
-            ProgressBar: true,
-        });
-        return false;
+    if ($('.paid-by-cash').prop('checked')) {
+        if (paidAmount.val() === '') {
+            toastr.error($("#message-enter-valid-amount").data("text"), {
+                CloseButton: true,
+                ProgressBar: true,
+            });
+            return false;
+        }
+        let given = parseFloat(paidAmount.val());
+        let total = parseFloat(paidAmount.data('total-amount'));
+        let hasSelectedCustomer = $('.pos-home-delivery').length > 0;
+        if (given < total && !hasSelectedCustomer) {
+            toastr.error($("#message-due-requires-customer").data("text"), {
+                CloseButton: true,
+                ProgressBar: true,
+            });
+            return false;
+        }
     }
     return true;
 }

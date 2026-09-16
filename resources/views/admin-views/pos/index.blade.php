@@ -160,6 +160,7 @@
 <span id="message-cart-is-empty" data-text="{{ translate('cart_is_empty') }}"></span>
 <span id="message-enter-valid-amount" data-text="{{ translate('please_enter_a_valid_amount') }}"></span>
 <span id="message-less-than-total-amount" data-text="{{ translate('paid_amount_is_less_than_total_amount') }}"></span>
+<span id="message-due-requires-customer" data-text="{{ translate('select_a_customer_to_place_a_due_or_partially_paid_order') }}"></span>
 <span id="message-coupon-is-invalid" data-text="{{ translate('coupon_is_invalid') }}"></span>
 <span id="message-product-quantity-updated" data-text="{{ translate('product_quantity_updated') }}"></span>
 <span id="message-coupon-added-successfully" data-text="{{ translate('coupon_added_successfully') }}"></span>

@@ -68,7 +68,7 @@ class POSService
         session()->put(SessionKey::CURRENT_USER, $cartId);
     }
 
-    public function checkConditions(float $amount, float $paidAmount = null): bool
+    public function checkConditions(float $amount, float $paidAmount = null, bool $allowUnderpayment = false): bool
     {
         $condition = false;
         $cartId = session(SessionKey::CURRENT_USER);
@@ -85,7 +85,7 @@ class POSService
             Toastr::error(translate('amount_cannot_be_lees_then_0'));
             $condition = true;
         }
-        if (!is_null($paidAmount) && $paidAmount < $amount) {
+        if (!$allowUnderpayment && !is_null($paidAmount) && $paidAmount < $amount) {
             Toastr::error(translate('paid_amount_is_less_than_total_amount'));
             $condition = true;
         }

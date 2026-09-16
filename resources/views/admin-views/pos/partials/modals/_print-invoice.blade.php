@@ -10,6 +10,18 @@
             </div>
             <div class="modal-body row">
 
+                @if($order)
+                    @php($orderTotalPriceSummary = \App\Utils\OrderManager::getOrderTotalPriceSummary(order: $order))
+                    @if($orderTotalPriceSummary['dueAmount'] > 0)
+                        <div class="col-md-12 non-printable">
+                            <div class="alert alert-danger d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                <span>{{ translate($order->payment_status) }} {{ translate('order') }} &mdash; {{ translate('customer_owes') }}</span>
+                                <strong>{{ setCurrencySymbol(amount: usdToDefaultCurrency(amount: $orderTotalPriceSummary['dueAmount']), currencyCode: getCurrencyCode()) }}</strong>
+                            </div>
+                        </div>
+                    @endif
+                @endif
+
                 <div class="col-md-12">
                     <div class="text-center">
                         <input id="print_invoice" type="button" class="btn btn--primary non-printable action-print-pos-invoice"

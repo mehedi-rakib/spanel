@@ -14,9 +14,11 @@ use App\Enums\ViewPaths\Admin\POSOrder;
 use App\Events\DigitalProductDownloadEvent;
 use App\Http\Controllers\BaseController;
 use App\Services\CartService;
+use App\Services\CustomerDueService;
 use App\Services\OrderDetailsService;
 use App\Services\OrderService;
 use App\Services\POSService;
+use App\Services\StockHistoryService;
 use App\Traits\CalculatorTrait;
 use App\Traits\CustomerTrait;
 use Brian2694\Toastr\Facades\Toastr;
@@ -58,6 +60,8 @@ class POSOrderController extends BaseController
         private readonly CartService                                $cartService,
         private readonly OrderDetailsService                        $orderDetailsService,
         private readonly OrderService                               $orderService,
+        private readonly StockHistoryService                        $stockHistoryService,
+        private readonly CustomerDueService                         $customerDueService,
     )
     {
     }
@@ -98,7 +102,7 @@ class POSOrderController extends BaseController
         $amount = $request['amount'];
         $paidAmount = $request['type'] == 'cash' ? ($request['paid_amount'] ?? 0) : null;
         $cartId = session(SessionKey::CURRENT_USER);
-        $condition = $this->POSService->checkConditions(amount: $amount, paidAmount: $paidAmount);
+        $condition = $this->POSService->checkConditions(amount: $amount, paidAmount: $paidAmount, allowUnderpayment: true);
         if ($condition == 'true') {
             return response()->json();
         }
@@ -106,6 +110,9 @@ class POSOrderController extends BaseController
         $checkProductTypeDigital = $this->cartService->checkProductTypeDigital(cartId: $cartId);
         if ($userId == 0 && $checkProductTypeDigital) {
             return response()->json(['checkProductTypeForWalkingCustomer' => true, 'message' => translate('To_order_digital_product') . ',' . translate('_kindly_fill_up_the_“Add_New_Customer”_form') . '.']);
+        }
+        if ($userId == 0 && !is_null($paidAmount) && $paidAmount < $amount) {
+            return response()->json(['checkProductTypeForWalkingCustomer' => true, 'message' => translate('select_a_customer_to_place_a_due_or_partially_paid_order') . '.']);
         }
         if ($request['type'] == 'wallet' && $userId != 0) {
             $customerBalance = $this->customerRepo->getFirstWhere(params: ['id' => $userId]) ?? 0;
@@ -122,6 +129,9 @@ class POSOrderController extends BaseController
         if ($order) {
             $orderId = $this->orderRepo->getList(orderBy: ['id' => 'DESC'])->first()->id + 1;
         }
+        $paymentStatus = is_null($paidAmount)
+            ? 'paid'
+            : ($paidAmount >= $amount ? 'paid' : ($paidAmount <= 0 ? 'due' : 'partial'));
         foreach ($cart as $item) {
             if (is_array($item)) {
                 $product = $this->productRepo->getFirstWhere(params: ['id' => $item['id']], relations: ['clearanceSale' => function ($query) {
@@ -148,7 +158,8 @@ class POSOrderController extends BaseController
                     }
                     $orderDetail = $this->orderDetailsService->getPOSOrderDetailsData(
                         orderId: $orderId, item: $item,
-                        product: $product, price: $price, tax: $tax
+                        product: $product, price: $price, tax: $tax,
+                        paymentStatus: $paymentStatus
                     );
                     if ($item['variant'] != null) {
                         $variantData = $this->POSService->getVariantData(
@@ -160,23 +171,39 @@ class POSOrderController extends BaseController
                     }
 
                     if ($product['product_type'] == 'physical') {
-                        $currentStock = $product['current_stock'] - $item['quantity'];
-                        $this->productRepo->update(id: $product['id'], data: ['current_stock' => $currentStock]);
+                        $this->stockHistoryService->recordChange(
+                            productId: $product['id'],
+                            type: StockHistoryService::TYPE_ORDER,
+                            quantityChange: -$item['quantity'],
+                            referenceNo: 'order-' . $orderId,
+                            adminId: auth('admin')->id(),
+                        );
                     }
                     $this->orderDetailRepo->add(data: $orderDetail);
                 }
             }
         }
+        $orderPaidAmount = $request['type'] == 'cash' ? $paidAmount : $amount;
         $order = $this->orderService->getPOSOrderData(
             orderId: $orderId,
             cart: $cart,
             amount: $amount,
-            paidAmount: $request['type'] == 'cash' ? $paidAmount : $amount,
+            paidAmount: $orderPaidAmount,
             paymentType: $request['type'],
             addedBy: 'admin',
             userId: $userId
         );
+        $order['payment_status'] = $paymentStatus;
         $this->orderRepo->add(data: $order);
+        if ($orderPaidAmount < $amount) {
+            $this->customerDueService->addDue(
+                userId: $userId,
+                amount: round($amount - $orderPaidAmount, 2),
+                orderId: $orderId,
+                note: translate('pos_sale_due') . ' #' . $orderId,
+                adminId: auth('admin')->id(),
+            );
+        }
         if ($checkProductTypeDigital) {
             $order = $this->orderRepo->getFirstWhere(params: ['id' => $orderId], relations: ['details.productAllStatus']);
             $data = [

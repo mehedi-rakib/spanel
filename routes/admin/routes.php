@@ -404,6 +404,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['admin']],
             Route::get(Customer::SEARCH[URI], 'getCustomerList')->name('customer-list-search');
             Route::get(Customer::SEARCH_WITHOUT_ALL_CUSTOMER[URI], 'getCustomerListWithoutAllCustomerName')->name('customer-list-without-all-customer');
             Route::post(Customer::ADD[URI], 'add')->name('add');
+            Route::post(Customer::DUE_PAYMENT[URI] . '/{id}', 'recordDuePayment')->name('due-payment');
         });
 
         Route::group(['prefix' => 'wallet', 'as' => 'wallet.'], function () {

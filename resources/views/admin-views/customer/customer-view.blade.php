@@ -51,6 +51,18 @@
                                         <span class="mr-3">:</span>
                                         <strong class="value">{{date('d M Y',strtotime($customer['created_at']))}}</strong>
                                     </li>
+                                    <li>
+                                        <span class="key text-capitalize">{{translate('due_balance')}}</span>
+                                        <span class="mr-3">:</span>
+                                        <strong class="value {{ $customer->due_balance > 0 ? 'text-danger' : '' }}">
+                                            {{setCurrencySymbol(amount: usdToDefaultCurrency(amount: $customer->due_balance))}}
+                                        </strong>
+                                        @if($customer->due_balance > 0)
+                                            <button type="button" class="btn btn-sm btn-outline--primary ml-2" data-toggle="modal" data-target="#record-due-payment">
+                                                {{translate('record_payment')}}
+                                            </button>
+                                        @endif
+                                    </li>
                                 </ul>
                             </div>
                         </div>
@@ -343,8 +355,108 @@
                     @endif
                 </div>
             </div>
+            <div class="col-lg-12">
+                <div class="card">
+                    <div class="p-3 d-flex flex-wrap justify-content-between align-items-center gap-3">
+                        <h5 class="card-title m-0">{{translate('due_ledger')}} <span class="badge badge-secondary">{{$dueTransactions->total()}}</span></h5>
+                        @if($customer->due_balance > 0)
+                            <button type="button" class="btn btn--primary btn-sm" data-toggle="modal" data-target="#record-due-payment">
+                                {{translate('record_payment')}}
+                            </button>
+                        @endif
+                    </div>
+                    <div class="table-responsive datatable-custom">
+                        <table class="table table-hover table-borderless table-thead-bordered table-nowrap table-align-middle card-table w-100">
+                            <thead class="thead-light thead-50 text-capitalize">
+                            <tr>
+                                <th>{{translate('date')}}</th>
+                                <th>{{translate('type')}}</th>
+                                <th>{{translate('order')}}</th>
+                                <th>{{translate('amount')}}</th>
+                                <th>{{translate('balance_after')}}</th>
+                                <th>{{translate('note')}}</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            @forelse($dueTransactions as $transaction)
+                                <tr>
+                                    <td>{{ $transaction->created_at->format('d M Y, h:i A') }}</td>
+                                    <td>
+                                        @if($transaction->type == 'payment')
+                                            <span class="badge badge-soft-success">{{translate('payment')}}</span>
+                                        @else
+                                            <span class="badge badge-soft-danger">{{translate($transaction->type)}}</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if($transaction->order_id)
+                                            <a href="{{route('admin.orders.details',['id'=>$transaction->order_id])}}" class="title-color hover-c1">
+                                                #{{$transaction->order_id}}
+                                            </a>
+                                        @else
+                                            -
+                                        @endif
+                                    </td>
+                                    <td class="{{ $transaction->type == 'payment' ? 'text-success' : 'text-danger' }}">
+                                        {{ $transaction->type == 'payment' ? '-' : '+' }}{{setCurrencySymbol(amount: usdToDefaultCurrency(amount: $transaction->amount))}}
+                                    </td>
+                                    <td>{{setCurrencySymbol(amount: usdToDefaultCurrency(amount: $transaction->balance_after))}}</td>
+                                    <td>{{ $transaction->note ?? '-' }}</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="6" class="text-center">{{translate('no_data_found')}}</td>
+                                </tr>
+                            @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="table-responsive mt-4">
+                        <div class="px-4 d-flex justify-content-lg-end">
+                            {!! $dueTransactions->links() !!}
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+
+    @if($customer->due_balance > 0)
+        <div class="modal fade" id="record-due-payment" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form action="{{route('admin.customer.due-payment', [$customer->id])}}" method="post">
+                        @csrf
+                        <div class="modal-header">
+                            <h5 class="modal-title">{{translate('record_due_payment')}}</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <p>{{translate('current_due_balance')}} :
+                                <strong class="text-danger">{{setCurrencySymbol(amount: usdToDefaultCurrency(amount: $customer->due_balance))}}</strong>
+                            </p>
+                            <div class="form-group">
+                                <label class="title-color">{{translate('amount')}}</label>
+                                <input type="number" min="0.01" max="{{usdToDefaultCurrency(amount: $customer->due_balance)}}" step="0.01"
+                                       class="form-control" name="amount"
+                                       value="{{usdToDefaultCurrency(amount: $customer->due_balance)}}" required>
+                            </div>
+                            <div class="form-group mb-0">
+                                <label class="title-color">{{translate('note')}}</label>
+                                <input type="text" class="form-control" name="note" placeholder="{{translate('optional')}}">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">{{translate('close')}}</button>
+                            <button type="submit" class="btn btn--primary">{{translate('save')}}</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endif
 @endsection
 
 @push('script')

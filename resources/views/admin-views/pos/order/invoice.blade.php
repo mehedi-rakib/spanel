@@ -144,15 +144,27 @@ $orderTotalPriceSummary = \App\Utils\OrderManager::getOrderTotalPriceSummary(ord
                 </td>
             </tr>
 
-            <tr>
-                <td colspan="2"></td>
-                <td class="text-right">
-                    {{ translate('Change_Amount') }}:
-                </td>
-                <td class="text-right">
-                    {{ setCurrencySymbol(amount: usdToDefaultCurrency(amount: $orderTotalPriceSummary['changeAmount']), currencyCode: getCurrencyCode()) }}
-                </td>
-            </tr>
+            @if($orderTotalPriceSummary['dueAmount'] > 0)
+                <tr>
+                    <td colspan="2"></td>
+                    <td class="text-right color-black font-weight-bold">
+                        {{ translate('Due_Amount') }}:
+                    </td>
+                    <td class="text-right color-black font-weight-bold">
+                        {{ setCurrencySymbol(amount: usdToDefaultCurrency(amount: $orderTotalPriceSummary['dueAmount']), currencyCode: getCurrencyCode()) }}
+                    </td>
+                </tr>
+            @else
+                <tr>
+                    <td colspan="2"></td>
+                    <td class="text-right">
+                        {{ translate('Change_Amount') }}:
+                    </td>
+                    <td class="text-right">
+                        {{ setCurrencySymbol(amount: usdToDefaultCurrency(amount: $orderTotalPriceSummary['changeAmount']), currencyCode: getCurrencyCode()) }}
+                    </td>
+                </tr>
+            @endif
         @endif
 
     </table>
@@ -161,6 +173,9 @@ $orderTotalPriceSummary = \App\Utils\OrderManager::getOrderTotalPriceSummary(ord
     <span class="dashed-hr"></span>
     <div class="d-flex flex-row justify-content-between">
         <span>{{ translate('paid_by') }}: {{ translate($order->payment_method) }}</span>
+        @if($order->payment_status != 'paid')
+            <span class="font-weight-bold">{{ translate($order->payment_status) }}</span>
+        @endif
     </div>
     <span class="dashed-hr"></span>
     <h5 class="text-center py-2 text-uppercase">

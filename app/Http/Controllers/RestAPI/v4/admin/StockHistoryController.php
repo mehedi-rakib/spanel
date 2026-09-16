@@ -31,4 +31,13 @@ class StockHistoryController extends Controller
 
         return response()->json($stockHistories, 200);
     }
+
+    public function show(string|int $id)
+    {
+        $history = $this->stockHistoryRepo->getFirstWhere(params: ['id' => $id], relations: ['product', 'admin']);
+        if (!$history) {
+            return response()->json(['errors' => [['code' => 'stock-history-001', 'message' => translate('stock_history_not_found')]]], 404);
+        }
+        return response()->json($history, 200);
+    }
 }

@@ -45,6 +45,7 @@ use Laravel\Passport\HasApiTokens;
  * @property string|null $temporary_token
  * @property bool $is_email_verified
  * @property float $wallet_balance
+ * @property float $due_balance
  * @property float $loyalty_point
  * @property int $login_hit_count
  * @property bool $is_temp_blocked
@@ -93,6 +94,7 @@ class User extends Authenticatable
         'temporary_token',
         'is_email_verified',
         'wallet_balance',
+        'due_balance',
         'loyalty_point',
         'login_hit_count',
         'is_temp_blocked',
@@ -145,6 +147,7 @@ class User extends Authenticatable
         'temporary_token' => 'string',
         'is_email_verified' => 'boolean',
         'wallet_balance' => 'float',
+        'due_balance' => 'float',
         'loyalty_point' => 'float',
         'login_hit_count' => 'integer',
         'is_temp_blocked' => 'boolean',
@@ -180,6 +183,11 @@ class User extends Authenticatable
     public function refundOrders(): HasMany
     {
         return $this->hasMany(RefundRequest::class, 'customer_id')->where('status','refunded');
+    }
+
+    public function dueTransactions(): HasMany
+    {
+        return $this->hasMany(CustomerDueTransaction::class, 'user_id');
     }
 
     // Old Relation: compare_list

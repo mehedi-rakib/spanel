@@ -132,7 +132,8 @@
                             <input type="number" class="form-control text-end pos-paid-amount-element" placeholder="{{ translate('ex') }}: 1000"
                             value="{{usdToDefaultCurrency(amount: $cartItems['total']+$cartItems['totalTax']-$cartItems['couponDiscount'])}}"
                             name="paid_amount"
-                            min="{{ usdToDefaultCurrency(amount: ($cartItems['total'] + $cartItems['totalTax'] - $cartItems['couponDiscount'])) }}"
+                            min="0"
+                            data-total-amount="{{ usdToDefaultCurrency(amount: ($cartItems['total'] + $cartItems['totalTax'] - $cartItems['couponDiscount'])) }}"
                             data-currency-position="{{ getWebConfig('currency_symbol_position') }}"
                             data-currency-symbol="{{ getCurrencySymbol() }}">
                         </dd>
@@ -140,6 +141,10 @@
                     <div class="d-flex gap-2 justify-content-between align-items-center">
                         <dt class="text-capitalize font-weight-normal">{{ translate('Change_Amount') }} : </dt>
                         <dd class="font-weight-bold title-color pos-change-amount-element">{{ setCurrencySymbol(amount: 0) }}</dd>
+                    </div>
+                    <div class="d-flex gap-2 justify-content-between align-items-center pos-due-amount-section d-none">
+                        <dt class="text-capitalize font-weight-normal text-danger">{{ translate('due_Amount') }} : </dt>
+                        <dd class="font-weight-bold text-danger pos-due-amount-element">{{ setCurrencySymbol(amount: 0) }}</dd>
                     </div>
                 </div>
                 <div class="cash-change-card cash-change-section d-none">

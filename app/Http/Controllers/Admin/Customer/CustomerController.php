@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\Customer;
 
 use App\Contracts\Repositories\BusinessSettingRepositoryInterface;
+use App\Contracts\Repositories\CustomerDueTransactionRepositoryInterface;
 use App\Contracts\Repositories\CustomerRepositoryInterface;
 use App\Contracts\Repositories\OrderRepositoryInterface;
 use App\Contracts\Repositories\PasswordResetRepositoryInterface;
@@ -21,6 +22,7 @@ use App\Http\Controllers\BaseController;
 use App\Http\Requests\Admin\CustomerRequest;
 use App\Http\Requests\Admin\CustomerUpdateSettingsRequest;
 use App\Repositories\ShippingAddressRepository;
+use App\Services\CustomerDueService;
 use App\Services\CustomerService;
 use App\Services\PasswordResetService;
 use App\Services\ShippingAddressService;
@@ -51,6 +53,8 @@ class CustomerController extends BaseController
         private readonly PasswordResetService               $passwordResetService,
         private readonly ShippingAddressRepository          $shippingAddressRepo,
         private readonly ShippingAddressService             $shippingAddressService,
+        private readonly CustomerDueTransactionRepositoryInterface $dueRepo,
+        private readonly CustomerDueService                 $customerDueService,
     )
     {
     }
@@ -154,9 +158,32 @@ class CustomerController extends BaseController
                 $orderStatusArray['total_order']++;
             });
             $orders = $this->orderRepo->getListWhere(orderBy: ['id' => 'desc'], searchValue: $request['searchValue'], filters: ['customer_id' => $id, 'is_guest' => '0'], dataLimit: getWebConfig('pagination_limit'));
-            return view(Customer::VIEW[VIEW], compact('customer', 'orders', 'orderStatusArray'));
+            $dueTransactions = $this->dueRepo->getListWhere(orderBy: ['id' => 'desc'], filters: ['user_id' => $id], dataLimit: 10);
+            return view(Customer::VIEW[VIEW], compact('customer', 'orders', 'orderStatusArray', 'dueTransactions'));
         }
         Toastr::error(translate('customer_Not_Found'));
+        return back();
+    }
+
+    public function recordDuePayment(Request $request, $id): RedirectResponse
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:0.01',
+        ]);
+
+        $result = $this->customerDueService->recordPayment(
+            userId: (int)$id,
+            amount: (float)$request['amount'],
+            note: $request['note'] ?? null,
+            adminId: auth('admin')->id(),
+        );
+
+        if (!$result['success']) {
+            Toastr::error(translate($result['message']));
+            return back();
+        }
+
+        Toastr::success(translate('due_payment_recorded'));
         return back();
     }
 

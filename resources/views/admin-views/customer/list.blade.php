@@ -107,6 +107,7 @@
                         <th>{{translate('customer_name')}}</th>
                         <th>{{translate('contact_info')}}</th>
                         <th>{{translate('total_Order')}} </th>
+                        <th>{{translate('due')}}</th>
                         <th class="text-center">{{translate('block')}} / {{translate('unblock')}}</th>
                         <th class="text-center">{{translate('action')}}</th>
                     </tr>
@@ -138,6 +139,15 @@
                                 <label class="btn text-info bg-soft-info font-weight-bold px-3 py-1 mb-0 fz-12">
                                     {{$customer?->orders?->count() ?? 0}}
                                 </label>
+                            </td>
+                            <td>
+                                @if($customer->due_balance > 0)
+                                    <label class="btn text-danger bg-soft-danger font-weight-bold px-3 py-1 mb-0 fz-12">
+                                        {{setCurrencySymbol(amount: usdToDefaultCurrency(amount: $customer->due_balance))}}
+                                    </label>
+                                @else
+                                    <span class="text-muted">{{setCurrencySymbol(amount: 0)}}</span>
+                                @endif
                             </td>
                             <td>
                                 @if($customer['email'] == 'walking@customer.com')

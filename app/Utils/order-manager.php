@@ -1437,7 +1437,8 @@ class OrderManager
             'totalItemQuantity' => $totalItemQuantity,
             'totalAmount' => ($total + $shipping - $extraDiscount - $couponDiscount),
             'paidAmount' => $order['paid_amount'],
-            'changeAmount' => ($order['paid_amount'] - ($total + $shipping - $extraDiscount - $couponDiscount)),
+            'changeAmount' => max((float)$order['paid_amount'] - ($total + $shipping - $extraDiscount - $couponDiscount), 0),
+            'dueAmount' => max(($total + $shipping - $extraDiscount - $couponDiscount) - (float)$order['paid_amount'], 0),
         ];
     }
 }

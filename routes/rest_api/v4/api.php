@@ -11,10 +11,14 @@
 use App\Http\Controllers\RestAPI\v4\admin\auth\LoginController;
 use App\Http\Controllers\RestAPI\v4\admin\BrandController;
 use App\Http\Controllers\RestAPI\v4\admin\CategoryController;
+use App\Http\Controllers\RestAPI\v4\admin\CustomerController;
+use App\Http\Controllers\RestAPI\v4\admin\CustomerDueController;
 use App\Http\Controllers\RestAPI\v4\admin\DashboardController;
 use App\Http\Controllers\RestAPI\v4\admin\EmployeeController;
 use App\Http\Controllers\RestAPI\v4\admin\OrderController;
+use App\Http\Controllers\RestAPI\v4\admin\POSController;
 use App\Http\Controllers\RestAPI\v4\admin\ProductController;
+use App\Http\Controllers\RestAPI\v4\admin\ReportController;
 use App\Http\Controllers\RestAPI\v4\admin\StockHistoryController;
 use Illuminate\Support\Facades\Route;
 
@@ -61,12 +65,35 @@ Route::group(['namespace' => 'RestAPI\v4\admin', 'prefix' => 'v4/admin', 'middle
 
         Route::controller(StockHistoryController::class)->group(function () {
             Route::get('stock-history', 'index');
+            Route::get('stock-history/{id}', 'show');
         });
 
         Route::controller(OrderController::class)->group(function () {
             Route::get('orders', 'index');
             Route::get('orders/{id}', 'show');
             Route::post('orders/{id}/status', 'updateStatus');
+        });
+
+        Route::controller(POSController::class)->group(function () {
+            Route::post('pos/sale', 'store');
+        });
+
+        Route::controller(CustomerController::class)->group(function () {
+            Route::get('customers', 'index');
+            Route::get('customers/{id}', 'show');
+        });
+
+        Route::controller(CustomerDueController::class)->group(function () {
+            Route::get('customer-dues', 'index');
+            Route::get('customer-dues/{customerId}', 'show');
+            Route::post('customer-dues/{customerId}/payments', 'store');
+        });
+
+        Route::controller(ReportController::class)->group(function () {
+            Route::get('reports/sales', 'sales');
+            Route::get('reports/stock', 'stock');
+            Route::get('reports/profit-loss', 'profitLoss');
+            Route::get('reports/due', 'due');
         });
     });
 });

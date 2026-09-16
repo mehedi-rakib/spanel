@@ -71,4 +71,9 @@ enum Customer
         VIEW => ''
     ];
 
+    const DUE_PAYMENT = [
+        URI => 'due-payment',
+        VIEW => ''
+    ];
+
 }
