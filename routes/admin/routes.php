@@ -272,6 +272,9 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['admin']],
             Route::post(Product::BULK_EDIT[URI], 'importBulkEditData')->name('bulk-edit-import');
             Route::get(Product::PURCHASE[URI], 'getPurchaseView')->name('purchase');
             Route::post(Product::PURCHASE[URI], 'submitPurchase')->name('purchase-submit');
+            Route::get(Product::PURCHASE_SEARCH[URI], 'searchPurchaseProducts')->name('purchase-search');
+            Route::get(Product::PURCHASE_LIST[URI], 'getPurchaseListView')->name('purchase-list');
+            Route::get(Product::PURCHASE_INVOICE[URI] . '/{reference_no}', 'getPurchaseInvoiceView')->name('purchase-invoice');
             Route::get(Product::UPDATED_PRODUCT_LIST[URI], 'updatedProductList')->name('updated-product-list');
             Route::post(Product::UPDATED_SHIPPING[URI], 'updatedShipping')->name('updated-shipping');
             Route::post(Product::DENY[URI], 'deny')->name('deny');

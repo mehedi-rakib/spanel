@@ -77,4 +77,34 @@ class StockHistoryRepository implements StockHistoryRepositoryInterface
     {
         return $this->stockHistory->where($params)->delete();
     }
+
+    public function getPurchaseGroups(string $searchValue = null, array $filters = [], int|string $dataLimit = DEFAULT_DATA_LIMIT): Collection|LengthAwarePaginator
+    {
+        $query = $this->stockHistory->query()
+            ->selectRaw('reference_no, MIN(created_at) as purchase_date, MAX(admin_id) as admin_id, SUM(quantity_change) as total_qty, SUM(quantity_change * COALESCE(unit_cost, 0)) as total_cost, COUNT(*) as item_count')
+            ->where('type', 'purchase')
+            ->whereNotNull('reference_no')
+            ->when($searchValue, function ($query) use ($searchValue) {
+                return $query->where('reference_no', 'like', "%{$searchValue}%");
+            })
+            ->when(!empty($filters['from_date']), function ($query) use ($filters) {
+                return $query->whereDate('created_at', '>=', $filters['from_date']);
+            })
+            ->when(!empty($filters['to_date']), function ($query) use ($filters) {
+                return $query->whereDate('created_at', '<=', $filters['to_date']);
+            })
+            ->groupBy('reference_no')
+            ->orderByDesc('purchase_date');
+
+        return $dataLimit === 'all' ? $query->get() : $query->paginate($dataLimit);
+    }
+
+    public function getPurchaseDetails(string $referenceNo): Collection
+    {
+        return $this->stockHistory->where('reference_no', $referenceNo)
+            ->where('type', 'purchase')
+            ->with(['product', 'admin'])
+            ->orderBy('id')
+            ->get();
+    }
 }

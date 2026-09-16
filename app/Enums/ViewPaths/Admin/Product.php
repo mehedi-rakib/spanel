@@ -134,6 +134,21 @@ enum Product
         VIEW => 'admin-views.product.purchase'
     ];
 
+    const PURCHASE_SEARCH = [
+        URI => 'purchase-search',
+        VIEW => ''
+    ];
+
+    const PURCHASE_LIST = [
+        URI => 'purchase-list',
+        VIEW => 'admin-views.product.purchase-list'
+    ];
+
+    const PURCHASE_INVOICE = [
+        URI => 'purchase-invoice',
+        VIEW => 'admin-views.product.purchase-invoice'
+    ];
+
     const REQUEST_RESTOCK_LIST = [
         URI => 'request-restock-list',
         VIEW => 'admin-views.product.request-restock-list'

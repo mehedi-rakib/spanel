@@ -22,6 +22,7 @@ use App\Contracts\Repositories\RestockProductRepositoryInterface;
 use App\Contracts\Repositories\ReviewRepositoryInterface;
 use App\Contracts\Repositories\StockClearanceProductRepositoryInterface;
 use App\Contracts\Repositories\StockClearanceSetupRepositoryInterface;
+use App\Contracts\Repositories\StockHistoryRepositoryInterface;
 use App\Contracts\Repositories\TranslationRepositoryInterface;
 use App\Contracts\Repositories\VendorRepositoryInterface;
 use App\Contracts\Repositories\WishlistRepositoryInterface;
@@ -34,11 +35,13 @@ use App\Http\Controllers\BaseController;
 use App\Http\Requests\Admin\ProductDenyRequest;
 use App\Http\Requests\ProductAddRequest;
 use App\Http\Requests\ProductUpdateRequest;
+use App\Models\Admin;
 use App\Repositories\DigitalProductPublishingHouseRepository;
 use App\Services\ProductBulkEditService;
 use App\Services\ProductService;
 use App\Services\StockHistoryService;
 use App\Traits\FileManagerTrait;
+use App\Traits\PdfGenerator;
 use App\Traits\ProductTrait;
 use Brian2694\Toastr\Facades\Toastr;
 use Carbon\Carbon;
@@ -46,6 +49,8 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\View as PdfView;
+use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 use Rap2hpoutre\FastExcel\FastExcel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -54,6 +59,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class ProductController extends BaseController
 {
     use ProductTrait;
+    use PdfGenerator;
 
     use FileManagerTrait {
         delete as deleteFile;
@@ -719,33 +725,35 @@ class ProductController extends BaseController
         return back();
     }
 
-    public function getPurchaseView(Request $request): View
+    public function getPurchaseView(): View
     {
-        $categories = $this->categoryRepo->getListWhere(filters: ['position' => 0], dataLimit: 'all');
-        $brands = $this->brandRepo->getListWhere(dataLimit: 'all');
+        return view(Product::PURCHASE[VIEW]);
+    }
 
+    public function searchPurchaseProducts(Request $request): JsonResponse
+    {
+        $searchValue = $request['searchValue'];
         $products = collect();
-        if ($request->filled('category_id') || $request->filled('brand_id') || $request->filled('searchValue')) {
-            $listFilters = [];
-            if ($request->filled('category_id')) {
-                $listFilters['category_id'] = $request['category_id'];
-            }
-            if ($request->filled('brand_id')) {
-                $listFilters['brand_id'] = $request['brand_id'];
-            }
-            if ($request->filled('searchValue')) {
-                $listFilters['code'] = $request['searchValue'];
-            }
 
+        if ($searchValue) {
             $products = $this->productRepo->getListWhere(
                 orderBy: ['id' => 'desc'],
-                searchValue: $request['searchValue'],
-                filters: $listFilters,
+                searchValue: $searchValue,
+                filters: ['code' => $searchValue],
                 dataLimit: 'all'
-            )->where('product_type', 'physical')->take(200);
+            )->where('product_type', 'physical')->where('status', 1)->take(20)->values();
         }
 
-        return view(Product::PURCHASE[VIEW], compact('categories', 'brands', 'products'));
+        $results = $products->map(fn($product) => [
+            'id' => $product->id,
+            'text' => $product->name,
+            'code' => $product->code,
+            'current_stock' => (int)$product->current_stock,
+            'purchase_price' => (float)$product->purchase_price,
+            'image' => getStorageImages(path: $product->thumbnail_full_url, type: 'backend-basic'),
+        ])->values();
+
+        return response()->json(['results' => $results]);
     }
 
     public function submitPurchase(Request $request, StockHistoryService $stockHistoryService): RedirectResponse
@@ -755,7 +763,7 @@ class ProductController extends BaseController
             'qty' => 'required|array',
         ]);
 
-        $referenceNo = $request['reference_no'];
+        $referenceNo = $request['reference_no'] ?: ('PUR-' . now()->format('ymd') . '-' . strtoupper(Str::random(5)));
         $count = 0;
         foreach ($request['product_id'] as $index => $productId) {
             $qty = (int)($request['qty'][$index] ?? 0);
@@ -771,7 +779,7 @@ class ProductController extends BaseController
                 type: StockHistoryService::TYPE_PURCHASE,
                 quantityChange: $qty,
                 unitCost: $unitCost,
-                referenceNo: $referenceNo ?: null,
+                referenceNo: $referenceNo,
                 note: $request['note'][$index] ?? null,
             );
 
@@ -783,11 +791,52 @@ class ProductController extends BaseController
 
         if ($count > 0) {
             Toastr::success($count . ' - ' . translate('products_stock_updated_successfully'));
-        } else {
-            Toastr::warning(translate('no_purchase_quantity_entered'));
+            return redirect()->route('admin.products.purchase-list');
         }
 
+        Toastr::warning(translate('no_purchase_quantity_entered'));
         return back();
+    }
+
+    public function getPurchaseListView(Request $request, StockHistoryRepositoryInterface $stockHistoryRepo): View
+    {
+        $filters = [
+            'from_date' => $request['from_date'],
+            'to_date' => $request['to_date'],
+        ];
+        $filters = array_filter($filters, fn($value) => $value !== null && $value !== '');
+
+        $searchValue = $request['searchValue'];
+        $purchases = $stockHistoryRepo->getPurchaseGroups(
+            searchValue: $searchValue,
+            filters: $filters,
+            dataLimit: getWebConfig(name: WebConfigKey::PAGINATION_LIMIT)
+        );
+
+        $adminNames = Admin::whereIn('id', collect($purchases->items())->pluck('admin_id')->filter()->unique())
+            ->pluck('name', 'id');
+
+        return view(Product::PURCHASE_LIST[VIEW], compact('purchases', 'searchValue', 'adminNames'));
+    }
+
+    public function getPurchaseInvoiceView(string $reference_no, StockHistoryRepositoryInterface $stockHistoryRepo)
+    {
+        $items = $stockHistoryRepo->getPurchaseDetails(referenceNo: $reference_no);
+        if ($items->isEmpty()) {
+            Toastr::error(translate('purchase_not_found'));
+            return back();
+        }
+
+        $companyName = getWebConfig(name: 'company_name');
+        $companyWebLogo = getWebConfig(name: 'company_web_logo');
+        $companyPhone = getWebConfig(name: 'company_phone');
+        $companyEmail = getWebConfig(name: 'company_email');
+        $companyAddress = getWebConfig(name: 'shop_address');
+
+        $mpdf_view = PdfView::make(Product::PURCHASE_INVOICE[VIEW], compact(
+            'items', 'reference_no', 'companyName', 'companyWebLogo', 'companyPhone', 'companyEmail', 'companyAddress'
+        ));
+        $this->generatePdf(view: $mpdf_view, filePrefix: 'purchase_invoice_', filePostfix: $reference_no, pdfType: 'invoice');
     }
 
     public function updatedProductList(Request $request): View
