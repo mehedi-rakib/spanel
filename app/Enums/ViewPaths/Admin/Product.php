@@ -69,6 +69,21 @@ enum Product
         VIEW => 'admin-views.product.barcode'
     ];
 
+    const BARCODE_GENERATOR = [
+        URI => 'barcode-generator',
+        VIEW => 'admin-views.product.barcode-generator'
+    ];
+
+    const BARCODE_GENERATOR_SELECTED_PRODUCTS = [
+        URI => 'barcode-generator/selected-products',
+        VIEW => 'admin-views.partials._barcode-select-product'
+    ];
+
+    const BARCODE_GENERATOR_PRINT = [
+        URI => 'barcode-generator/print',
+        VIEW => 'admin-views.product.barcode-print'
+    ];
+
     const EXPORT_EXCEL = [
         URI => 'export-excel',
         VIEW => ''

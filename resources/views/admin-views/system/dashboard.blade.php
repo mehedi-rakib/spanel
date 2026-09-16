@@ -78,7 +78,7 @@
                                 <div class="position-relative">
                                     <div id="chart" class="apex-pie-chart d-flex justify-content-center"></div>
                                     <div class="total--orders">
-                                        <h3>{{ $data['getTotalCustomerCount'] + $data['getTotalVendorCount'] + $data['getTotalDeliveryManCount'] }}
+                                        <h3>{{ $data['getTotalCustomerCount'] + $data['getTotalDeliveryManCount'] }}
                                         </h3>
                                         <span class="text-capitalize">{{ translate('total_User') }}</span>
                                     </div>
@@ -87,10 +87,6 @@
                                     <div class="before-bg-0">
                                         <span class="text-capitalize">{{ translate('total_customer') . ' ' . '(' . $data['getTotalCustomerCount'] . ')' }}
                                         </span>
-                                    </div>
-                                    <div class="before-bg-1">
-                                        <span
-                                            class="text-capitalize">{{ translate('total_vendor') . ' ' . '(' . $data['getTotalVendorCount'] . ')' }}</span>
                                     </div>
                                     <div class="before-bg-2">
                                         <span
@@ -113,16 +109,8 @@
                 </div>
                 <div class="col-md-6 col-xl-4">
                     <div class="card h-100 remove-card-shadow">
-                        @include('admin-views.partials._top-store-by-order', [
-                            'top_store_by_order_received' => $data['top_store_by_order_received'],
-                        ])
-                    </div>
-                </div>
-
-                <div class="col-md-6 col-xl-4">
-                    <div class="card h-100 remove-card-shadow">
-                        @include('admin-views.partials._top-selling-store', [
-                            'topVendorByEarning' => $data['topVendorByEarning'],
+                        @include('admin-views.partials._report-summary', [
+                            'data' => $data,
                         ])
                     </div>
                 </div>
@@ -168,19 +156,16 @@
 
     <span id="earning-statistics-url" data-url="{{ route('admin.dashboard.earning-statistics') }}"></span>
     <span id="order-status-url" data-url="{{ route('admin.dashboard.order-status') }}"></span>
-    <span id="seller-text" data-text="{{ translate('vendor') }}"></span>
     <span id="message-commission-text" data-text="{{ translate('commission') }}"></span>
     <span id="in-house-text" data-text="{{ translate('In-house') }}"></span>
     <span id="customer-text" data-text="{{ translate('customer') }}"></span>
-    <span id="store-text" data-text="{{ translate('store') }}"></span>
     <span id="product-text" data-text="{{ translate('product') }}"></span>
     <span id="order-text" data-text="{{ translate('order') }}"></span>
     <span id="brand-text" data-text="{{ translate('brand') }}"></span>
     <span id="business-text" data-text="{{ translate('business') }}"></span>
     <span id="orders-text" data-text="{{ $data['order'] }}"></span>
     <span id="user-overview-data" style="background-color: #000;" data-customer="{{ $data['getTotalCustomerCount'] }}"
-        data-customer-title="{{ translate('Total_Customer') }}" data-vendor="{{ $data['getTotalVendorCount'] }}"
-        data-vendor-title="{{ translate('Total_Vendor') }}" data-delivery-man="{{ $data['getTotalDeliveryManCount'] }}"
+        data-customer-title="{{ translate('Total_Customer') }}" data-delivery-man="{{ $data['getTotalDeliveryManCount'] }}"
         data-delivery-man-title="{{ translate('Total_Delivery_Man') }}"></span>
 @endsection
 

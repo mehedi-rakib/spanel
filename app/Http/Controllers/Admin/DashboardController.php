@@ -10,8 +10,6 @@ use App\Contracts\Repositories\OrderRepositoryInterface;
 use App\Contracts\Repositories\OrderTransactionRepositoryInterface;
 use App\Contracts\Repositories\ProductRepositoryInterface;
 use App\Contracts\Repositories\RestockProductRepositoryInterface;
-use App\Contracts\Repositories\VendorRepositoryInterface;
-use App\Contracts\Repositories\VendorWalletRepositoryInterface;
 use App\Enums\ViewPaths\Admin\Dashboard;
 use App\Http\Controllers\BaseController;
 use App\Services\DashboardService;
@@ -33,8 +31,6 @@ class DashboardController extends BaseController
         private readonly DeliveryManRepositoryInterface      $deliveryManRepo,
         private readonly OrderRepositoryInterface            $orderRepo,
         private readonly BrandRepositoryInterface            $brandRepo,
-        private readonly VendorRepositoryInterface           $vendorRepo,
-        private readonly VendorWalletRepositoryInterface     $vendorWalletRepo,
         private readonly RestockProductRepositoryInterface   $restockProductRepo,
         private readonly DashboardService                    $dashboardService,
     )
@@ -58,8 +54,6 @@ class DashboardController extends BaseController
         $topSellProduct = $this->productRepo->getTopSellList(relations: ['orderDetails'])->take(DASHBOARD_TOP_SELL_DATA_LIMIT);
         $topCustomer = $this->orderRepo->getTopCustomerList(relations: ['customer'], dataLimit: 'all')->take(DASHBOARD_DATA_LIMIT);
         $topRatedDeliveryMan = $this->deliveryManRepo->getTopRatedList(filters: ['seller_id' => 0], relations: ['deliveredOrders'], dataLimit: 'all')->take(DASHBOARD_DATA_LIMIT);
-        $topVendorByEarning = $this->vendorWalletRepo->getListWhere(orderBy: ['total_earning' => 'desc'], relations: ['seller.shop'])->take(DASHBOARD_DATA_LIMIT);
-        $topVendorByOrderReceived = $this->orderRepo->getTopVendorListByOrderReceived(relations: ['seller.shop'], dataLimit: 'all')->take(DASHBOARD_DATA_LIMIT);
 
         $data = self::getOrderStatusData();
         $admin_wallet = $this->adminWalletRepo->getFirstWhere(params: ['admin_id' => 1]);
@@ -68,20 +62,15 @@ class DashboardController extends BaseController
         $to = now()->endOfYear()->format('Y-m-d');
         $range = range(1, 12);
         $label = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        $inHouseOrderEarningArray = $this->getOrderStatisticsData(from: $from, to: $to, range: $range, type: 'month', userType: 'admin');
-        $vendorOrderEarningArray = $this->getOrderStatisticsData(from: $from, to: $to, range: $range, type: 'month', userType: 'seller');
-        $inHouseEarning = $this->getEarning(from: $from, to: $to, range: $range, type: 'month', userType: 'admin');
-        $vendorEarning = $this->getEarning(from: $from, to: $to, range: $range, type: 'month', userType: 'seller');
-        $commissionEarn = $this->getAdminCommission(from: $from, to: $to, range: $range, type: 'month');
+        $orderEarningArray = $this->getOrderStatisticsData(from: $from, to: $to, range: $range, type: 'month');
+        $totalEarning = $this->getEarning(from: $from, to: $to, range: $range, type: 'month');
         $dateType = 'yearEarn';
         $data += [
             'order' => $this->orderRepo->getListWhere(dataLimit: 'all')->count(),
             'brand' => $this->brandRepo->getListWhere(dataLimit: 'all')->count(),
             'topSellProduct' => $topSellProduct,
             'mostRatedProducts' => $mostRatedProducts,
-            'topVendorByEarning' => $topVendorByEarning,
             'top_customer' => $topCustomer,
-            'top_store_by_order_received' => $topVendorByOrderReceived,
             'topRatedDeliveryMan' => $topRatedDeliveryMan,
             'inhouse_earning' => $admin_wallet['inhouse_earning'] ?? 0,
             'commission_earned' => $admin_wallet['commission_earned'] ?? 0,
@@ -89,10 +78,9 @@ class DashboardController extends BaseController
             'pending_amount' => $admin_wallet['pending_amount'] ?? 0,
             'total_tax_collected' => $admin_wallet['total_tax_collected'] ?? 0,
             'getTotalCustomerCount' => $this->customerRepo->getList(dataLimit: 'all')->count(),
-            'getTotalVendorCount' => $this->vendorRepo->getListWhere(dataLimit: 'all')->count(),
             'getTotalDeliveryManCount' => $this->deliveryManRepo->getListWhere(filters:['seller_id' => 0],dataLimit: 'all')->count(),
         ];
-        return view(Dashboard::VIEW[VIEW], compact('data', 'inHouseEarning', 'vendorEarning', 'commissionEarn','inHouseOrderEarningArray','vendorOrderEarningArray','label','dateType'));
+        return view(Dashboard::VIEW[VIEW], compact('data', 'totalEarning','orderEarningArray','label','dateType'));
     }
 
     public function getOrderStatus(Request $request): JsonResponse
@@ -105,7 +93,7 @@ class DashboardController extends BaseController
     public function getOrderStatusData(): array
     {
         $orderQuery = $this->orderRepo->getListWhere(dataLimit: 'all');
-        $storeQuery = $this->vendorRepo->getListWhere(dataLimit: 'all');
+        $revenueQuery = $this->orderRepo->getListWhere(filters: ['payment_status' => 'paid'], dataLimit: 'all');
         $productQuery = $this->productRepo->getListWhere(dataLimit: 'all');
         $customerQuery = $this->customerRepo->getListWhere(dataLimit: 'all');
         $failedQuery = $this->orderRepo->getListWhere(filters: ['order_status' => 'failed'], dataLimit: 'all');
@@ -119,7 +107,7 @@ class DashboardController extends BaseController
 
         return [
             'order' => self::getCommonQueryOrderStatus($orderQuery),
-            'store' => self::getCommonQueryOrderStatus($storeQuery),
+            'revenue' => usdToDefaultCurrency(self::getCommonQuerySum($revenueQuery, 'order_amount')),
             'failed' => self::getCommonQueryOrderStatus($failedQuery),
             'pending' => self::getCommonQueryOrderStatus($pendingQuery),
             'product' => self::getCommonQueryOrderStatus($productQuery),
@@ -145,18 +133,29 @@ class DashboardController extends BaseController
             return $query->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()]);
         })->count();
     }
+
+    public function getCommonQuerySum($query, string $column)
+    {
+        $today = session()->has('statistics_type') && session('statistics_type') == 'today' ? 1 : 0;
+        $this_month = session()->has('statistics_type') && session('statistics_type') == 'this_month' ? 1 : 0;
+
+        return $query->when($today, function ($query) {
+            return $query->where('created_at', '>=', now()->startOfDay())
+                            ->where('created_at', '<', now()->endOfDay());
+        })->when($this_month, function ($query) {
+            return $query->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()]);
+        })->sum($column);
+    }
     public function getOrderStatistics(Request $request):JsonResponse
     {
         $dateType = $request['type'];
         $dateTypeArray = $this->dashboardService->getDateTypeData(dateType:$dateType);
         $from = $dateTypeArray['from']; $to = $dateTypeArray['to']; $type = $dateTypeArray['type']; $range = $dateTypeArray['range'];
-        $inHouseOrderEarningArray = $this->getOrderStatisticsData(from: $from, to: $to, range: $range, type: $type,userType:'admin');
-        $vendorOrderEarningArray = $this->getOrderStatisticsData(from: $from, to: $to, range: $range, type: $type,userType:'seller');
+        $orderEarningArray = $this->getOrderStatisticsData(from: $from, to: $to, range: $range, type: $type);
         $label = $dateTypeArray['keyRange'] ?? [];
-        $inHouseOrderEarningArray = array_values($inHouseOrderEarningArray);
-        $vendorOrderEarningArray = array_values($vendorOrderEarningArray);
+        $orderEarningArray = array_values($orderEarningArray);
         return response()->json([
-            'view' => view(Dashboard::ORDER_STATISTICS[VIEW], compact('inHouseOrderEarningArray','vendorOrderEarningArray','label','dateType'))->render(),
+            'view' => view(Dashboard::ORDER_STATISTICS[VIEW], compact('orderEarningArray','label','dateType'))->render(),
         ]);
     }
     public function getEarningStatistics(Request $request):JsonResponse
@@ -164,22 +163,17 @@ class DashboardController extends BaseController
         $dateType = $request['type'];
         $dateTypeArray = $this->dashboardService->getDateTypeData(dateType:$dateType);
         $from = $dateTypeArray['from']; $to = $dateTypeArray['to']; $type = $dateTypeArray['type']; $range = $dateTypeArray['range'];
-        $inHouseEarning = $this->getEarning(from: $from, to: $to, range: $range, type: $type,userType: 'admin');
-        $vendorEarning = $this->getEarning(from: $from, to: $to, range: $range, type: $type,userType: 'seller');
-        $commissionEarn = $this->getAdminCommission(from: $from, to: $to, range: $range, type: $type);
+        $totalEarning = $this->getEarning(from: $from, to: $to, range: $range, type: $type);
         $label = $dateTypeArray['keyRange'] ?? [];
-        $inHouseEarning = array_values($inHouseEarning);
-        $vendorEarning = array_values($vendorEarning);
-        $commissionEarn = array_values($commissionEarn);
+        $totalEarning = array_values($totalEarning);
         return response()->json([
-            'view' => view(Dashboard::EARNING_STATISTICS[VIEW], compact('inHouseEarning','vendorEarning','commissionEarn','label','dateType'))->render(),
+            'view' => view(Dashboard::EARNING_STATISTICS[VIEW], compact('totalEarning','label','dateType'))->render(),
         ]);
     }
-    protected function getOrderStatisticsData($from,$to,$range,$type,$userType):array
+    protected function getOrderStatisticsData($from,$to,$range,$type):array
     {
         $orderEarnings = $this->orderRepo->getListWhereBetween(
             filters:  [
-                'seller_is'=>$userType,
                 'payment_status' => 'paid'
             ],
             selectColumn: 'order_amount',
@@ -198,11 +192,10 @@ class DashboardController extends BaseController
         return $orderEarningArray;
     }
 
-    protected function getEarning(string|Carbon $from, string|Carbon $to, array $range, string $type, $userType): array
+    protected function getEarning(string|Carbon $from, string|Carbon $to, array $range, string $type): array
     {
         $earning = $this->orderTransactionRepo->getListWhereBetween(
             filters: [
-                'seller_is' => $userType,
                 'status' => 'disburse',
             ],
             selectColumn: 'seller_amount',
@@ -211,28 +204,6 @@ class DashboardController extends BaseController
             whereBetweenFilters: [$from, $to],
         );
         return $this->dashboardService->getDateWiseAmount(range: $range, type: $type, amountArray: $earning);
-    }
-
-    /**
-     * @param string|Carbon $from
-     * @param string|Carbon $to
-     * @param array $range
-     * @param string $type
-     * @return array
-     */
-    protected function getAdminCommission(string|Carbon $from, string|Carbon $to, array $range, string $type): array
-    {
-        $commissionGiven = $this->orderTransactionRepo->getListWhereBetween(
-            filters: [
-                'seller_is' => 'seller',
-                'status' => 'disburse',
-            ],
-            selectColumn: 'admin_commission',
-            whereBetween: 'created_at',
-            groupBy: $type,
-            whereBetweenFilters: [$from, $to],
-        );
-        return $this->dashboardService->getDateWiseAmount(range: $range, type: $type, amountArray: $commissionGiven);
     }
 
     public function getRealTimeActivities(): JsonResponse

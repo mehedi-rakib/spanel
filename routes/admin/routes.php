@@ -257,6 +257,9 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['admin']],
             Route::get(Product::GET_CATEGORIES[URI], 'getCategories')->name('get-categories');
             Route::post(Product::UPDATE_STATUS[URI], 'updateStatus')->name('status-update');
             Route::get(Product::BARCODE_VIEW[URI] . '/{id}', 'getBarcodeView')->name('barcode');
+            Route::get(Product::BARCODE_GENERATOR[URI], 'getBarcodeGeneratorView')->name('barcode-generator');
+            Route::get(Product::BARCODE_GENERATOR_SELECTED_PRODUCTS[URI], 'getBarcodeSelectedProductsView')->name('barcode-generator.selected-products');
+            Route::post(Product::BARCODE_GENERATOR_PRINT[URI], 'generateBarcode')->name('barcode-generator.print');
             Route::get(Product::EXPORT_EXCEL[URI] . '/{type}', 'exportList')->name('export-excel');
             Route::get(Product::STOCK_LIMIT[URI] . '/{type}', 'getStockLimitListView')->name('stock-limit-list');
             Route::delete(Product::DELETE[URI] . '/{id}', 'delete')->name('delete');

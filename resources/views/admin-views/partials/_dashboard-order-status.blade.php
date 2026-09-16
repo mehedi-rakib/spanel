@@ -6,9 +6,9 @@
     </a>
 </div>
 <div class="col-sm-6 col-lg-3">
-    <a class="business-analytics get-view-by-onclick card" href="{{route('admin.vendors.vendor-list')}}">
-        <h5 class="business-analytics__subtitle">{{translate('total_Stores')}}</h5>
-        <h2 class="business-analytics__title">{{ $data['store'] }}</h2>
+    <a class="business-analytics card">
+        <h5 class="business-analytics__subtitle">{{translate('total_revenue')}}</h5>
+        <h2 class="business-analytics__title">{{ setCurrencySymbol(amount: $data['revenue'] ?? 0, currencyCode: getCurrencyCode()) }}</h2>
         <img src="{{dynamicAsset(path: 'public/assets/back-end/img/total-stores.png')}}" class="business-analytics__img" alt="">
     </a>
 </div>

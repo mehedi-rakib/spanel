@@ -36,5 +36,5 @@
     </div>
 </div>
 <span id="order-statistics" data-action="{{route('admin.dashboard.order-statistics')}}"></span>
-<span id="order-statistics-data" data-inhouse-text = "{{translate('inhouse')}}" data-vendor-text = "{{translate('vendor')}}" data-inhouse-order-earn="{{json_encode($inHouseOrderEarningArray)}}" data-vendor-order-earn="{{json_encode($vendorOrderEarningArray)}}" data-label="{{json_encode($label)}}"></span>
+<span id="order-statistics-data" data-total-text = "{{translate('total')}}" data-order-earn="{{json_encode($orderEarningArray)}}" data-label="{{json_encode($label)}}"></span>
 <input name="order_statistics_label_count" value="{{count($label)}}" hidden>

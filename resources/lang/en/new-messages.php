@@ -9298,4 +9298,6 @@ return [
 	"partial" => "Partial",
 	"stock_is_now_managed_from_Purchase_and_Stock_History,_not_from_this_form" => "Stock is now managed from Purchase and Stock History  not from this form",
 	"use_the_Purchase_or_Stock_History_page_to_change_stock" => "Use the Purchase or Stock History page to change stock",
+	"total_revenue" => "Total revenue",
+	"report_summary" => "Report summary",
 ];

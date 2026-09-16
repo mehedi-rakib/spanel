@@ -551,6 +551,50 @@ class ProductController extends BaseController
         return view(Product::BARCODE_VIEW[VIEW], compact('product', 'barcodes'));
     }
 
+    public function getBarcodeGeneratorView(): View
+    {
+        $products = $this->productRepo->getListWhere(filters: ['status' => 1], dataLimit: 'all');
+        return view(Product::BARCODE_GENERATOR[VIEW], compact('products'));
+    }
+
+    public function getBarcodeSelectedProductsView(Request $request): JsonResponse
+    {
+        $selectedProducts = $this->productRepo->getListWhere(
+            filters: ['productIds' => $request['productIds']],
+            dataLimit: 'all'
+        );
+        return response()->json([
+            'result' => view(Product::BARCODE_GENERATOR_SELECTED_PRODUCTS[VIEW], compact('selectedProducts'))->render(),
+        ]);
+    }
+
+    public function generateBarcode(Request $request): View
+    {
+        $request->validate([
+            'product_id' => 'required|array|min:1',
+            'product_id.*' => 'required|integer',
+            'qty' => 'required|array',
+            'qty.*' => 'required|integer|min:1|max:270',
+        ]);
+
+        $products = $this->productRepo->getListWhere(
+            filters: ['productIds' => $request['product_id']],
+            dataLimit: 'all'
+        );
+        $quantities = array_combine($request['product_id'], $request['qty']);
+
+        $barcodeItems = [];
+        foreach ($products as $product) {
+            $qty = $quantities[$product['id']] ?? 1;
+            for ($i = 0; $i < $qty; $i++) {
+                $barcodeItems[] = $product;
+            }
+        }
+        $barcodePages = array_chunk($barcodeItems, 24);
+
+        return view(Product::BARCODE_GENERATOR_PRINT[VIEW], compact('barcodePages'));
+    }
+
     public function getStockLimitListView(Request $request, string $type): View
     {
         $stockLimit = getWebConfig(name: 'stock_limit');

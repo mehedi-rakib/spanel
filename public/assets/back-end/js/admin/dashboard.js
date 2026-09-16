@@ -61,8 +61,7 @@ setMonthResponsiveDataForEarningStatistic();
 let windowSize = getWindowSize();
 function orderStatisticsApexChart() {
     let orderStatisticsData = $("#order-statistics-data");
-    const inHouseOrderEarn = orderStatisticsData.data("inhouse-order-earn");
-    const vendorOrderEarn = orderStatisticsData.data("vendor-order-earn");
+    const totalOrderEarn = orderStatisticsData.data("order-earn");
     let label = orderStatisticsData.data("label");
     if (windowSize.width < 767) {
         label = getLabelData(
@@ -74,12 +73,8 @@ function orderStatisticsApexChart() {
     var options = {
         series: [
             {
-                name: orderStatisticsData.data("inhouse-text"),
-                data: Object.values(inHouseOrderEarn),
-            },
-            {
-                name: orderStatisticsData.data("vendor-text"),
-                data: Object.values(vendorOrderEarn),
+                name: orderStatisticsData.data("total-text"),
+                data: Object.values(totalOrderEarn),
             },
         ],
         chart: {
@@ -105,7 +100,7 @@ function orderStatisticsApexChart() {
                 },
             },
         },
-        colors: ["#4FA7FF", "#82C662"],
+        colors: ["#4FA7FF"],
         dataLabels: {
             enabled: false,
         },
@@ -162,16 +157,13 @@ function orderStatisticsApexChart() {
 orderStatisticsApexChart();
 function UserOverViewChart() {
     const userOverViewData = $("#user-overview-data");
-    console.log(userOverViewData);
     var options = {
         series: [
             userOverViewData.data("customer"),
-            userOverViewData.data("vendor"),
             userOverViewData.data("delivery-man"),
         ],
         labels: [
             userOverViewData.data("customer-title"),
-            userOverViewData.data("vendor-title"),
             userOverViewData.data("delivery-man-title"),
         ],
         chart: {
@@ -181,7 +173,7 @@ function UserOverViewChart() {
         dataLabels: {
             enabled: false,
         },
-        colors: ["#7bc4ff", "#f9b530", "#1c1a93"],
+        colors: ["#7bc4ff", "#1c1a93"],
         responsive: [
             {
                 breakpoint: 480,
@@ -303,9 +295,7 @@ try {
 
 function earningStatisticsApexChart() {
     let earnStatisticsData = $("#earn-statistics-data");
-    const inHouseEarn = earnStatisticsData.data("inhouse-earn");
-    const vendorEarn = earnStatisticsData.data("vendor-earn");
-    const commissionEarn = earnStatisticsData.data("commission-earn");
+    const totalEarn = earnStatisticsData.data("total-earn");
     let label = earnStatisticsData.data("label");
     if (windowSize.width < 767) {
         label = getLabelData(
@@ -317,16 +307,8 @@ function earningStatisticsApexChart() {
     var options = {
         series: [
             {
-                name: earnStatisticsData.data("inhouse-text"),
-                data: Object.values(inHouseEarn),
-            },
-            {
-                name: earnStatisticsData.data("vendor-text"),
-                data: Object.values(vendorEarn),
-            },
-            {
-                name: earnStatisticsData.data("commission-text"),
-                data: Object.values(commissionEarn),
+                name: earnStatisticsData.data("total-text"),
+                data: Object.values(totalEarn),
             },
         ],
         chart: {
@@ -352,7 +334,7 @@ function earningStatisticsApexChart() {
                 },
             },
         },
-        colors: ["#4FA7FF", "#82C662", "#c1c662"],
+        colors: ["#4FA7FF"],
         dataLabels: {
             enabled: false,
         },

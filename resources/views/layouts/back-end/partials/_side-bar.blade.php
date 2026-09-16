@@ -411,6 +411,13 @@
                                             <span class="text-truncate">{{translate('bulk_edit')}}</span>
                                         </a>
                                     </li>
+                                    <li class="nav-item {{Request::is('admin/products/'.Product::BARCODE_GENERATOR[URI])?'active':''}}">
+                                        <a class="nav-link " href="{{route('admin.products.barcode-generator')}}"
+                                           title="{{translate('generate_Barcode')}}">
+                                            <span class="tio-circle nav-indicator-icon"></span>
+                                            <span class="text-truncate">{{translate('generate_Barcode')}}</span>
+                                        </a>
+                                    </li>
                                     <li class="nav-item {{Request::is('admin/products/'.Product::PURCHASE[URI])?'active':''}}">
                                         <a class="nav-link " href="{{route('admin.products.purchase')}}"
                                            title="{{translate('purchase_Product')}}">
