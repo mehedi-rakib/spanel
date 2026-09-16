@@ -18,14 +18,25 @@ if (!function_exists('translate')) {
 
     function getOrPutTranslateMessageValueByKey(string $local, string $key): array|string|null
     {
+        static $messagesCache = [];
+        static $newMessagesCache = [];
+
         try {
-            $translatedMessagesArray = include(base_path('resources/lang/' . $local . '/messages.php'));
-            $newMessagesArray = include(base_path('resources/lang/' . $local . '/new-messages.php'));
+            if (!isset($messagesCache[$local])) {
+                $messagesCache[$local] = include(base_path('resources/lang/' . $local . '/messages.php'));
+            }
+            if (!isset($newMessagesCache[$local])) {
+                $newMessagesCache[$local] = include(base_path('resources/lang/' . $local . '/new-messages.php'));
+            }
+            $translatedMessagesArray = $messagesCache[$local];
+            $newMessagesArray = $newMessagesCache[$local];
+
             $key = str_replace('"', '', $key);
             $processedKey = ucfirst(str_replace('_', ' ', removeSpecialCharacters($key)));
 
             if (!array_key_exists($key, $translatedMessagesArray) && !array_key_exists($key, $newMessagesArray)) {
                 $newMessagesArray[$key] = $processedKey;
+                $newMessagesCache[$local] = $newMessagesArray;
 
                 $languageFileContents = "<?php\n\nreturn [\n";
                 foreach ($newMessagesArray as $languageKey => $value) {

@@ -732,26 +732,32 @@ class ProductController extends BaseController
 
     public function searchPurchaseProducts(Request $request): JsonResponse
     {
-        $searchValue = $request['searchValue'];
-        $products = collect();
+        $searchValue = trim((string)$request['searchValue']);
+        $results = [];
 
-        if ($searchValue) {
-            $products = $this->productRepo->getListWhere(
-                orderBy: ['id' => 'desc'],
-                searchValue: $searchValue,
-                filters: ['code' => $searchValue],
-                dataLimit: 'all'
-            )->where('product_type', 'physical')->where('status', 1)->take(20)->values();
+        if (mb_strlen($searchValue) >= 2) {
+            $products = \App\Models\Product::query()
+                ->withoutGlobalScope('translate')
+                ->select(['id', 'name', 'code', 'current_stock', 'purchase_price', 'thumbnail', 'thumbnail_storage_type'])
+                ->where('product_type', 'physical')
+                ->where('status', 1)
+                ->where(function ($query) use ($searchValue) {
+                    $query->where('name', 'like', "%{$searchValue}%")
+                        ->orWhere('code', 'like', "%{$searchValue}%");
+                })
+                ->orderByDesc('id')
+                ->limit(20)
+                ->get();
+
+            $results = $products->map(fn($product) => [
+                'id' => $product->id,
+                'text' => $product->name,
+                'code' => $product->code,
+                'current_stock' => (int)$product->current_stock,
+                'purchase_price' => (float)$product->purchase_price,
+                'image' => getStorageImages(path: $product->thumbnail_full_url, type: 'backend-basic'),
+            ])->values();
         }
-
-        $results = $products->map(fn($product) => [
-            'id' => $product->id,
-            'text' => $product->name,
-            'code' => $product->code,
-            'current_stock' => (int)$product->current_stock,
-            'purchase_price' => (float)$product->purchase_price,
-            'image' => getStorageImages(path: $product->thumbnail_full_url, type: 'backend-basic'),
-        ])->values();
 
         return response()->json(['results' => $results]);
     }

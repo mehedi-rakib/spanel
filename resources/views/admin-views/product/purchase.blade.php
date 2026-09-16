@@ -128,37 +128,55 @@
                 $resultsBox.addClass('d-none').empty();
             }
 
+            let activeRequest = null;
+
             $searchInput.on('keyup', function () {
                 const value = $(this).val().trim();
                 clearTimeout(searchTimer);
-                if (value.length === 0) {
+                if (activeRequest) {
+                    activeRequest.abort();
+                    activeRequest = null;
+                }
+                if (value.length < 2) {
                     hideResults();
                     return;
                 }
+                $resultsBox.removeClass('d-none').html(
+                    '<div class="p-3 text-muted">{{translate('searching')}}&hellip;</div>'
+                );
                 searchTimer = setTimeout(function () {
-                    $.get(searchUrl, {searchValue: value}, function (response) {
-                        const results = response.results || [];
-                        if (results.length === 0) {
+                    activeRequest = $.get(searchUrl, {searchValue: value})
+                        .done(function (response) {
+                            const results = (response && response.results) || [];
+                            if (results.length === 0) {
+                                $resultsBox.removeClass('d-none').html(
+                                    '<div class="p-3 text-muted">' + '{{translate('No_Product_Found')}}' + '</div>'
+                                );
+                                return;
+                            }
+                            let html = '';
+                            results.forEach(function (product) {
+                                html += '<div class="d-flex align-items-center gap-2 p-2 border-bottom cursor-pointer purchase-search-item"' +
+                                    ' data-id="' + product.id + '"' +
+                                    ' data-name="' + escapeHtml(product.text) + '"' +
+                                    ' data-code="' + escapeHtml(product.code) + '"' +
+                                    ' data-stock="' + product.current_stock + '"' +
+                                    ' data-cost="' + product.purchase_price + '">' +
+                                    '<img src="' + product.image + '" width="36" height="36" class="rounded border" alt="">' +
+                                    '<div><div class="font-weight-semibold">' + escapeHtml(product.text) + '</div>' +
+                                    '<small class="text-muted">' + escapeHtml(product.code) + ' &middot; {{translate('stock')}}: ' + product.current_stock + '</small></div>' +
+                                    '</div>';
+                            });
+                            $resultsBox.removeClass('d-none').html(html);
+                        })
+                        .fail(function (xhr) {
+                            console.error('Purchase product search failed', xhr.status, xhr.responseText);
                             $resultsBox.removeClass('d-none').html(
-                                '<div class="p-3 text-muted">' + '{{translate('No_Product_Found')}}' + '</div>'
+                                '<div class="p-3 text-danger">' +
+                                '{{translate('something_went_wrong')}}' +
+                                ' (HTTP ' + xhr.status + ')</div>'
                             );
-                            return;
-                        }
-                        let html = '';
-                        results.forEach(function (product) {
-                            html += '<div class="d-flex align-items-center gap-2 p-2 border-bottom cursor-pointer purchase-search-item"' +
-                                ' data-id="' + product.id + '"' +
-                                ' data-name="' + escapeHtml(product.text) + '"' +
-                                ' data-code="' + escapeHtml(product.code) + '"' +
-                                ' data-stock="' + product.current_stock + '"' +
-                                ' data-cost="' + product.purchase_price + '">' +
-                                '<img src="' + product.image + '" width="36" height="36" class="rounded border" alt="">' +
-                                '<div><div class="font-weight-semibold">' + escapeHtml(product.text) + '</div>' +
-                                '<small class="text-muted">' + escapeHtml(product.code) + ' &middot; {{translate('stock')}}: ' + product.current_stock + '</small></div>' +
-                                '</div>';
                         });
-                        $resultsBox.removeClass('d-none').html(html);
-                    });
                 }, 300);
             });
 

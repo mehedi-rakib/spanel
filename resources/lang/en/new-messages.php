@@ -9283,4 +9283,5 @@ return [
 	"created_by" => "Created by",
 	"purchase_invoice" => "Purchase invoice",
 	"grand_total" => "Grand total",
+	"searching" => "Searching",
 ];
