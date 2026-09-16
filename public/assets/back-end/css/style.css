@@ -1,10 +1,10 @@
 :root {
-    --c1: #1455ac;
-    --c1-rgb: 20, 85, 172;
-    --c2: #ff6767;
-    --title-color: #334257;
-    --text-color: #5b6777;
-    --border-color: rgba(180, 208, 224, 0.5);
+    --c1: #e1122f;
+    --c1-rgb: 225, 18, 47;
+    --c2: #1a1a1a;
+    --title-color: #161616;
+    --text-color: #4a4a4a;
+    --border-color: rgba(0, 0, 0, 0.12);
     --font: "Inter", sans-serif;
 }
 
@@ -96,8 +96,16 @@ a:hover {
     display: none;
 }
 
+.navbar-vertical-aside {
+    background-color: #0d0d0d !important;
+}
+
+.navbar-vertical-aside .js-navbar-vertical-aside-toggle-invoker {
+    color: #e9f3ff;
+}
+
 .navbar-vertical-content {
-    background: #073b74;
+    background: #0d0d0d;
     /* padding: 10px 15px; */
 }
 
@@ -106,16 +114,16 @@ a:hover {
 }
 
 .navbar-vertical-content .nav-link:hover {
-    color: #8ce98a;
-    background: rgba(239, 246, 255, 0.1);
+    color: var(--c1);
+    background: rgba(225, 18, 47, 0.15);
 }
 
 .navbar .active > .nav-link,
 .navbar .nav-link.active,
 .navbar .nav-link.show,
 .navbar .show > .nav-link {
-    color: #8ce98a;
-    background-color: rgba(239, 246, 255, 0.1);
+    color: var(--c1);
+    background-color: rgba(225, 18, 47, 0.15);
 }
 
 .navbar .has-sub-item.active > .nav-link {
@@ -125,7 +133,7 @@ a:hover {
 .navbar-vertical .active .nav-indicator-icon,
 .navbar-vertical .nav-link:hover .nav-indicator-icon,
 .navbar-vertical .show > .nav-link > .nav-indicator-icon {
-    color: #8ce98a;
+    color: var(--c1);
 }
 
 /* .navbar-vertical .navbar-nav.nav-tabs .active .nav-link,
@@ -144,7 +152,7 @@ a:hover {
         > .navbar-nav
         > .navbar-vertical-aside-has-menu
         > .nav {
-        background-color: #073b74;
+        background-color: #1a1a1a;
     }
 }
 .cmn--media {
@@ -5425,7 +5433,7 @@ select {
     position: sticky;
     top: 0;
     z-index: 9;
-    background: #073b74;
+    background: #0d0d0d;
 }
 
 aside .navbar-vertical-content {
@@ -7079,7 +7087,7 @@ table .store-name:hover {
     opacity: 0;
 }
 .check-item-2 input:checked {
-    background-color: #006fbd;
+    background-color: var(--c1);
     opacity: 1;
 }
 .max-w-353px {
@@ -7093,7 +7101,7 @@ table .store-name:hover {
 }
 .sorting-card .form--check .form-check-input[type="radio"]:checked,
 .sorting-card .toggle-switch-input:checked + .toggle-switch-label {
-    background-color: #006fbd !important;
+    background-color: var(--c1) !important;
 }
 .sorting-card .form-check-input:checked + .form-check-label {
     font-weight: 600;
@@ -7136,7 +7144,7 @@ table .store-name:hover {
 }
 .language-warning-modal,
 .language-complete-modal {
-    --c1: #1455ac;
+    --c1: #e1122f;
 }
 .language-warning-modal .modal-content {
     border-left: 4px solid var(--c1);

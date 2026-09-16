@@ -1,10 +1,10 @@
 :root {
-    --c1: #1455ac;
-    --c1-rgb: 20, 85, 172;
-    --c2: #ff6767;
-    --title-color: #334257;
-    --text-color: #5b6777;
-    --border-color: rgba(180, 208, 224, 0.5);
+    --c1: #e1122f;
+    --c1-rgb: 225, 18, 47;
+    --c2: #1a1a1a;
+    --title-color: #161616;
+    --text-color: #4a4a4a;
+    --border-color: rgba(0, 0, 0, 0.12);
     --font: "Inter", sans-serif;
 }
 

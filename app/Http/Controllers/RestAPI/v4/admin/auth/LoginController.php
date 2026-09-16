@@ -42,6 +42,7 @@ class LoginController extends Controller
                 'phone' => $admin->phone,
                 'admin_role_id' => $admin->admin_role_id,
                 'is_super_admin' => $admin->admin_role_id == 1,
+                'module_access' => $admin->admin_role_id == 1 ? null : json_decode(optional($admin->role)->module_access ?? '[]'),
             ],
         ], 200);
     }
@@ -62,6 +63,7 @@ class LoginController extends Controller
             'phone' => $admin->phone,
             'admin_role_id' => $admin->admin_role_id,
             'is_super_admin' => $admin->admin_role_id == 1,
+            'module_access' => $admin->admin_role_id == 1 ? null : json_decode(optional($admin->role)->module_access ?? '[]'),
         ], 200);
     }
 }
