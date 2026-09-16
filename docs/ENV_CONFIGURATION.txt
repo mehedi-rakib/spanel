@@ -1,0 +1,19 @@
+# Add these lines to your .env file for 1688.com Product Import
+
+# 1688 API Configuration
+# Replace with your actual API provider's endpoint and key
+1688_API_ENDPOINT=https://api.example.com/1688/product
+1688_API_KEY=your_api_key_here
+
+# Example configurations for popular providers:
+
+# Example 1: Generic API Provider
+# 1688_API_ENDPOINT=https://api.yourprovider.com/v1/1688/product
+# 1688_API_KEY=sk_live_abc123xyz456
+
+# Example 2: Custom Endpoint
+# 1688_API_ENDPOINT=https://custom-api.example.com/products/fetch
+# 1688_API_KEY=Bearer your_token_here
+
+# Note: 1688.com does not have a public API
+# You must use a third-party API service provider
