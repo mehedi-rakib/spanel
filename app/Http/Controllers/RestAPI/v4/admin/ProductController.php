@@ -181,6 +181,7 @@ class ProductController extends Controller
     public function purchase(Request $request)
     {
         $validator = Validator::make($request->all(), [
+            'supplier_id' => 'required|integer|exists:suppliers,id',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|integer',
             'items.*.qty' => 'required|integer|min:1',
@@ -190,6 +191,7 @@ class ProductController extends Controller
             return response()->json(['errors' => Helpers::validationErrorProcessor($validator)], 403);
         }
 
+        $supplierId = (int)$request['supplier_id'];
         $referenceNo = $request['reference_no'] ?? null;
         $results = [];
         foreach ($request['items'] as $item) {
@@ -203,6 +205,7 @@ class ProductController extends Controller
                 referenceNo: $referenceNo,
                 note: $item['note'] ?? null,
                 adminId: $request['admin']->id,
+                supplierId: $supplierId,
             );
 
             if ($history && $unitCost !== null) {

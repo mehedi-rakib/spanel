@@ -25,7 +25,7 @@ class StockHistoryController extends Controller
             orderBy: ['id' => 'desc'],
             searchValue: $request['searchValue'],
             filters: $filters,
-            relations: ['product', 'admin'],
+            relations: ['product', 'admin', 'supplier'],
             dataLimit: $request['limit'] ?? DEFAULT_DATA_LIMIT
         );
 
@@ -34,7 +34,7 @@ class StockHistoryController extends Controller
 
     public function show(string|int $id)
     {
-        $history = $this->stockHistoryRepo->getFirstWhere(params: ['id' => $id], relations: ['product', 'admin']);
+        $history = $this->stockHistoryRepo->getFirstWhere(params: ['id' => $id], relations: ['product', 'admin', 'supplier']);
         if (!$history) {
             return response()->json(['errors' => [['code' => 'stock-history-001', 'message' => translate('stock_history_not_found')]]], 404);
         }

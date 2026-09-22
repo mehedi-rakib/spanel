@@ -432,6 +432,13 @@
                                             <span class="text-truncate">{{translate('purchase_list')}}</span>
                                         </a>
                                     </li>
+                                    <li class="nav-item {{Request::is('admin/products/supplier*')?'active':''}}">
+                                        <a class="nav-link " href="{{route('admin.products.supplier.list')}}"
+                                           title="{{translate('suppliers')}}">
+                                            <span class="tio-circle nav-indicator-icon"></span>
+                                            <span class="text-truncate">{{translate('suppliers')}}</span>
+                                        </a>
+                                    </li>
                                     <li class="nav-item {{Request::is('admin/stock-history*')?'active':''}}">
                                         <a class="nav-link " href="{{route('admin.stock-history.list')}}"
                                            title="{{translate('stock_History')}}">

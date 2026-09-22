@@ -20,6 +20,7 @@ use App\Http\Controllers\RestAPI\v4\admin\POSController;
 use App\Http\Controllers\RestAPI\v4\admin\ProductController;
 use App\Http\Controllers\RestAPI\v4\admin\ReportController;
 use App\Http\Controllers\RestAPI\v4\admin\StockHistoryController;
+use App\Http\Controllers\RestAPI\v4\admin\SupplierController;
 use Illuminate\Support\Facades\Route;
 
 Route::group(['namespace' => 'RestAPI\v4\admin', 'prefix' => 'v4/admin', 'middleware' => ['api_lang']], function () {
@@ -66,6 +67,14 @@ Route::group(['namespace' => 'RestAPI\v4\admin', 'prefix' => 'v4/admin', 'middle
         Route::controller(StockHistoryController::class)->group(function () {
             Route::get('stock-history', 'index');
             Route::get('stock-history/{id}', 'show');
+        });
+
+        Route::controller(SupplierController::class)->group(function () {
+            Route::get('suppliers', 'index');
+            Route::get('suppliers/{id}', 'show');
+            Route::post('suppliers', 'store');
+            Route::post('suppliers/{id}', 'update');
+            Route::delete('suppliers/{id}', 'destroy');
         });
 
         Route::controller(OrderController::class)->group(function () {

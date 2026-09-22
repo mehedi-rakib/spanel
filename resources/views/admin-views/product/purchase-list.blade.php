@@ -50,6 +50,7 @@
                         <tr>
                             <th>{{translate('reference_no')}}</th>
                             <th>{{translate('date')}}</th>
+                            <th>{{translate('supplier')}}</th>
                             <th>{{translate('items')}}</th>
                             <th>{{translate('total_quantity')}}</th>
                             <th>{{translate('total_cost')}}</th>
@@ -62,6 +63,7 @@
                             <tr>
                                 <td>{{ $purchase->reference_no }}</td>
                                 <td>{{ \Carbon\Carbon::parse($purchase->purchase_date)->format('d M Y, h:i A') }}</td>
+                                <td>{{ $supplierNames[$purchase->supplier_id] ?? '-' }}</td>
                                 <td>{{ $purchase->item_count }}</td>
                                 <td>{{ $purchase->total_qty }}</td>
                                 <td>{{ setCurrencySymbol(usdToDefaultCurrency(amount: $purchase->total_cost)) }}</td>
@@ -75,7 +77,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center">{{translate('no_data_found')}}</td>
+                                <td colspan="8" class="text-center">{{translate('no_data_found')}}</td>
                             </tr>
                         @endforelse
                         </tbody>

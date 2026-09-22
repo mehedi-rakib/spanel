@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * @property int $id
  * @property int $product_id
+ * @property int|null $supplier_id
  * @property string $type
  * @property int $quantity_change
  * @property int $previous_stock
@@ -21,6 +22,7 @@ class StockHistory extends Model
 {
     protected $fillable = [
         'product_id',
+        'supplier_id',
         'type',
         'quantity_change',
         'previous_stock',
@@ -33,6 +35,7 @@ class StockHistory extends Model
 
     protected $casts = [
         'product_id' => 'integer',
+        'supplier_id' => 'integer',
         'type' => 'string',
         'quantity_change' => 'integer',
         'previous_stock' => 'integer',
@@ -51,5 +54,10 @@ class StockHistory extends Model
     public function admin(): BelongsTo
     {
         return $this->belongsTo(Admin::class, 'admin_id');
+    }
+
+    public function supplier(): BelongsTo
+    {
+        return $this->belongsTo(Supplier::class, 'supplier_id');
     }
 }

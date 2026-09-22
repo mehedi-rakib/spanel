@@ -6,6 +6,7 @@
     $totalCost = $items->sum(fn($item) => $item->quantity_change * ($item->unit_cost ?? 0));
     $purchaseDate = $items->first()->created_at;
     $admin = $items->first()->admin;
+    $supplier = $items->first()->supplier;
 @endphp
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{$direction}}"
       style="text-align: {{$direction === "rtl" ? 'right' : 'left'}};"
@@ -122,6 +123,9 @@
                 </div>
                 <div class="fz-11">
                     <span class="font-bold">{{ translate('created_by')}}</span> : {{ $admin?->name ?? '-' }}
+                </div>
+                <div class="fz-11">
+                    <span class="font-bold">{{ translate('supplier')}}</span> : {{ $supplier?->name ?? '-' }}
                 </div>
             </td>
             <td class="text-right" style="padding:16px">

@@ -20,7 +20,24 @@
                 <div class="col-12">
                     <div class="card card-body">
                         <div class="row align-items-end">
-                            <div class="col-md-8 col-lg-9">
+                            <div class="col-md-5 col-lg-5">
+                                <div class="form-group mb-0">
+                                    <label class="title-color">{{translate('supplier')}} <span class="text-danger">*</span></label>
+                                    <div class="d-flex gap-2">
+                                        <select id="purchase-supplier-select" name="supplier_id" class="form-control" required>
+                                            <option value="">{{translate('select_supplier')}}</option>
+                                            @foreach($suppliers as $supplier)
+                                                <option value="{{ $supplier->id }}">{{ $supplier->name }}{{ $supplier->phone ? ' ('.$supplier->phone.')' : '' }}</option>
+                                            @endforeach
+                                        </select>
+                                        <button class="btn btn-success text-nowrap" id="add_new_supplier" type="button"
+                                                data-toggle="modal" data-target="#add-supplier" title="{{translate('add_new_supplier')}}">
+                                            <i class="tio-add"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 col-lg-4">
                                 <div class="form-group mb-0 position-relative">
                                     <label class="title-color">{{translate('search_product')}}</label>
                                     <input type="text" id="purchase-product-search" autocomplete="off"
@@ -29,7 +46,7 @@
                                          style="z-index: 1000; max-height: 320px; overflow-y: auto; top: 100%; left: 0;"></div>
                                 </div>
                             </div>
-                            <div class="col-md-4 col-lg-3">
+                            <div class="col-md-3 col-lg-3">
                                 <div class="form-group mb-0">
                                     <label class="title-color">{{translate('reference_no')}}</label>
                                     <input type="text" class="form-control" name="reference_no"
@@ -102,6 +119,47 @@
             </td>
         </tr>
     </template>
+
+    <div class="modal fade" id="add-supplier" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">{{ translate('add_new_supplier') }}</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="add-supplier-form">
+                        @csrf
+                        <div class="form-group">
+                            <label class="input-label">{{translate('name')}} <span class="text-danger">*</span></label>
+                            <input type="text" name="name" id="new-supplier-name" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="input-label">{{translate('shop_name')}}</label>
+                            <input type="text" name="shop_name" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label class="input-label">{{translate('phone')}}</label>
+                            <input type="text" name="phone" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label class="input-label">{{translate('email')}}</label>
+                            <input type="email" name="email" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label class="input-label">{{translate('address')}}</label>
+                            <textarea name="address" class="form-control" rows="2"></textarea>
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <button type="submit" class="btn btn--primary">{{translate('submit')}}</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @push('script')
@@ -219,9 +277,30 @@
             });
 
             $('#purchase-form').on('submit', function (e) {
-                if ($itemsBody.find('.purchase-item-row').length === 0) {
+                if ($itemsBody.find('.purchase-item-row').length === 0 || !$('#purchase-supplier-select').val()) {
                     e.preventDefault();
                 }
+            });
+
+            $('#add-supplier-form').on('submit', function (e) {
+                e.preventDefault();
+                $.ajax({
+                    url: "{{ route('admin.products.supplier.add') }}",
+                    type: 'POST',
+                    data: $(this).serialize(),
+                    success: function (response) {
+                        if (response && response.supplier) {
+                            $('#purchase-supplier-select').append(
+                                new Option(response.supplier.text, response.supplier.id, true, true)
+                            );
+                        }
+                        $('#add-supplier-form')[0].reset();
+                        $('#add-supplier').modal('hide');
+                    },
+                    error: function (xhr) {
+                        console.error('Add supplier failed', xhr.status, xhr.responseText);
+                    },
+                });
             });
         })();
     </script>

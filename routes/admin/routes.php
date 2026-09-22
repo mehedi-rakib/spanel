@@ -20,6 +20,8 @@ use App\Http\Controllers\FirebaseController;
 use Illuminate\Support\Facades\Route;
 use App\Enums\ViewPaths\Admin\Contact;
 use App\Enums\ViewPaths\Admin\Product;
+use App\Enums\ViewPaths\Admin\Supplier;
+use App\Http\Controllers\Admin\Product\SupplierController;
 use App\Enums\ViewPaths\Admin\Profile;
 use App\Enums\ViewPaths\Admin\SiteMap;
 use App\Enums\ViewPaths\Admin\Category;
@@ -290,6 +292,16 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['admin']],
             Route::get(Product::REQUEST_RESTOCK_LIST[URI], 'getRequestRestockListView')->name('request-restock-list');
             Route::get(Product::EXPORT_RESTOCK[URI], 'exportRestockList')->name('restock-export');
             Route::delete(Product::RESTOCK_DELETE[URI] . '/{id}', 'deleteRestock')->name('restock-delete');
+        });
+
+        Route::group(['prefix' => 'supplier', 'as' => 'supplier.'], function () {
+            Route::controller(SupplierController::class)->group(function () {
+                Route::get(Supplier::LIST[URI], 'index')->name('list');
+                Route::post(Supplier::ADD[URI], 'add')->name('add');
+                Route::post(Supplier::UPDATE[URI], 'update')->name('update');
+                Route::post(Supplier::STATUS_UPDATE[URI], 'statusUpdate')->name('status-update');
+                Route::delete(Supplier::DELETE[URI] . '/{id}', 'delete')->name('delete');
+            });
         });
     });
 

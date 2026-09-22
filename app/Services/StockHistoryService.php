@@ -36,13 +36,14 @@ class StockHistoryService
         ?string $referenceNo = null,
         ?string $note = null,
         ?int    $adminId = null,
+        ?int    $supplierId = null,
     ): ?StockHistory
     {
         if ($quantityChange === 0) {
             return null;
         }
 
-        return DB::transaction(function () use ($productId, $type, $quantityChange, $unitCost, $referenceNo, $note, $adminId) {
+        return DB::transaction(function () use ($productId, $type, $quantityChange, $unitCost, $referenceNo, $note, $adminId, $supplierId) {
             $product = $this->productRepo->getFirstWhere(params: ['id' => $productId]);
             if (!$product) {
                 return null;
@@ -56,6 +57,7 @@ class StockHistoryService
 
             return $this->stockHistoryRepo->add(data: [
                 'product_id' => $productId,
+                'supplier_id' => $supplierId,
                 'type' => $type,
                 'quantity_change' => $actualChange,
                 'previous_stock' => $previousStock,

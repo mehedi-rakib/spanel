@@ -771,7 +771,8 @@ class ProductController extends BaseController
 
     public function getPurchaseView(): View
     {
-        return view(Product::PURCHASE[VIEW]);
+        $suppliers = \App\Models\Supplier::where('status', 1)->orderBy('name')->get();
+        return view(Product::PURCHASE[VIEW], compact('suppliers'));
     }
 
     public function searchPurchaseProducts(Request $request): JsonResponse
@@ -809,10 +810,12 @@ class ProductController extends BaseController
     public function submitPurchase(Request $request, StockHistoryService $stockHistoryService): RedirectResponse
     {
         $request->validate([
+            'supplier_id' => 'required|integer|exists:suppliers,id',
             'product_id' => 'required|array',
             'qty' => 'required|array',
         ]);
 
+        $supplierId = (int)$request['supplier_id'];
         $referenceNo = $request['reference_no'] ?: ('PUR-' . now()->format('ymd') . '-' . strtoupper(Str::random(5)));
         $count = 0;
         foreach ($request['product_id'] as $index => $productId) {
@@ -831,6 +834,7 @@ class ProductController extends BaseController
                 unitCost: $unitCost,
                 referenceNo: $referenceNo,
                 note: $request['note'][$index] ?? null,
+                supplierId: $supplierId,
             );
 
             if ($unitCost !== null) {
@@ -865,8 +869,10 @@ class ProductController extends BaseController
 
         $adminNames = Admin::whereIn('id', collect($purchases->items())->pluck('admin_id')->filter()->unique())
             ->pluck('name', 'id');
+        $supplierNames = \App\Models\Supplier::whereIn('id', collect($purchases->items())->pluck('supplier_id')->filter()->unique())
+            ->pluck('name', 'id');
 
-        return view(Product::PURCHASE_LIST[VIEW], compact('purchases', 'searchValue', 'adminNames'));
+        return view(Product::PURCHASE_LIST[VIEW], compact('purchases', 'searchValue', 'adminNames', 'supplierNames'));
     }
 
     public function getPurchaseInvoiceView(string $reference_no, StockHistoryRepositoryInterface $stockHistoryRepo)

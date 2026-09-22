@@ -81,7 +81,7 @@ class StockHistoryRepository implements StockHistoryRepositoryInterface
     public function getPurchaseGroups(string $searchValue = null, array $filters = [], int|string $dataLimit = DEFAULT_DATA_LIMIT): Collection|LengthAwarePaginator
     {
         $query = $this->stockHistory->query()
-            ->selectRaw('reference_no, MIN(created_at) as purchase_date, MAX(admin_id) as admin_id, SUM(quantity_change) as total_qty, SUM(quantity_change * COALESCE(unit_cost, 0)) as total_cost, COUNT(*) as item_count')
+            ->selectRaw('reference_no, MIN(created_at) as purchase_date, MAX(admin_id) as admin_id, MAX(supplier_id) as supplier_id, SUM(quantity_change) as total_qty, SUM(quantity_change * COALESCE(unit_cost, 0)) as total_cost, COUNT(*) as item_count')
             ->where('type', 'purchase')
             ->whereNotNull('reference_no')
             ->when($searchValue, function ($query) use ($searchValue) {
@@ -103,7 +103,7 @@ class StockHistoryRepository implements StockHistoryRepositoryInterface
     {
         return $this->stockHistory->where('reference_no', $referenceNo)
             ->where('type', 'purchase')
-            ->with(['product', 'admin'])
+            ->with(['product', 'admin', 'supplier'])
             ->orderBy('id')
             ->get();
     }
