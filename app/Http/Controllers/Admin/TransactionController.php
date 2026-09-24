@@ -107,7 +107,7 @@ class TransactionController extends Controller
             );
         }
 
-        return (new FastExcel($tranData))->download('Transaction_All_details.xlsx');
+        return (new FastExcel($tranData))->configureOptionsUsing(\App\Utils\A4Paper::fastExcelOptions())->download('Transaction_All_details.xlsx');
 
     }
 }

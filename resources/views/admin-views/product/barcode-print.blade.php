@@ -52,9 +52,12 @@
 
                         @if ($product->code !== null)
                             <div class="barcode_image d-flex justify-content-center">
-                                {!! DNS1D::getBarcodeHTML($product->code, 'C128') !!}
+                                {!! \App\Utils\BarcodeLabel::svg($product->code) !!}
+                                @if(\App\Utils\BarcodeLabel::moduleWidthMm($product->code, 58) < \App\Utils\BarcodeLabel::MIN_MODULE_MM)
+                                    <small class="d-print-none text-danger d-block">{{ translate('code_too_long_to_scan_reliably_use_a_shorter_SKU') }}</small>
+                                @endif
                             </div>
-                            <div class="barcode_code text-capitalize">
+                            <div class="barcode_code">
                                 {{ translate('code') }} : {{ $product->code }}
                             </div>
                         @else

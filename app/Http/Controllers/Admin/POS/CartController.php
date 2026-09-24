@@ -116,6 +116,52 @@ class CartController extends BaseController
         ]);
     }
 
+    /**
+     * A barcode scanner types the SKU and presses Enter. Find the product whose code
+     * matches exactly and add one to the cart (or +1 if it's already there), reusing
+     * addToCart() / the quantity update so pricing and stock checks stay identical.
+     * Products with variations can't be added blind, so the caller opens their picker.
+     */
+    public function scanBarcode(Request $request): JsonResponse
+    {
+        $cartId = session(SessionKey::CURRENT_USER);
+        $code = trim((string)$request['code']);
+        $product = $code === '' ? null : $this->productRepo->getFirstWhereActive(params: ['code' => $code, 'added_by' => 'admin']);
+
+        if (!$product) {
+            return response()->json(['status' => 'not_found']);
+        }
+
+        $hasOptions = !empty(json_decode($product['choice_options'] ?? '[]', true))
+            || !empty(json_decode($product['colors'] ?? '[]', true))
+            || $product['product_type'] === 'digital';
+        if ($hasOptions) {
+            return response()->json(['status' => 'options', 'id' => $product['id']]);
+        }
+
+        $inCart = collect(session($cartId) ?? [])->first(
+            fn($item) => is_array($item) && $item['id'] == $product['id'] && empty($item['variant'])
+        );
+
+        if ($inCart) {
+            $left = $this->cartService->getQuantityAndUpdateTime(
+                request: new Request(['key' => $product['id'], 'variant' => '', 'quantity' => $inCart['quantity'] + 1]),
+                product: $product
+            );
+            $status = $left < 0 ? 'out_of_stock' : 'added';
+        } else {
+            $added = $this->addToCart(new Request(['id' => $product['id'], 'quantity' => 1]))->getData(true);
+            $status = ($added['data'] ?? 0) === 0 ? 'out_of_stock' : 'added';
+        }
+
+        $cartItems = $this->getCartData(cartName: $cartId);
+        return response()->json([
+            'status' => $status,
+            'name' => $product['name'],
+            'view' => view(Cart::CART[VIEW], compact('cartId', 'cartItems'))->render(),
+        ]);
+    }
+
     public function addToCart(Request $request): JsonResponse
     {
         $cartId = session(SessionKey::CURRENT_USER);
@@ -127,7 +173,8 @@ class CartController extends BaseController
         $variant = $this->cartService->makeVariation(
             request: $request,
             colorName: $colorName,
-            choiceOptions: json_decode($product['choice_options'])
+            // NULL choice_options (e.g. imported products) must not crash makeVariation(array).
+            choiceOptions: json_decode($product['choice_options'] ?? '[]') ?? []
         );
         if ($product['product_type'] == 'digital' && $request->has('variant_key')) {
             foreach ($product['digitalVariation'] as $digitalVariation) {
@@ -158,7 +205,7 @@ class CartController extends BaseController
                             }
                         }
                     }
-                    $currentQty = $this->cartService->checkCurrentStock(variant: $variant, variation: json_decode($product['variation']), productQty: $product['current_stock'], quantity: $request['quantity_in_cart']);
+                    $currentQty = $this->cartService->checkCurrentStock(variant: $variant, variation: json_decode($product['variation'] ?? '[]') ?? [], productQty: $product['current_stock'], quantity: $request['quantity_in_cart']);
                     if ($product['product_type'] == 'physical' && $currentQty < 0) {
                         $cartItems = $this->getCartData(cartName: $cartId);
                         return response()->json([
@@ -204,7 +251,7 @@ class CartController extends BaseController
             }
         }
 
-        $currentQty = $this->cartService->checkCurrentStock(variant: $variant, variation: json_decode($product['variation']), productQty: $product['current_stock'], quantity: $request['quantity']);
+        $currentQty = $this->cartService->checkCurrentStock(variant: $variant, variation: json_decode($product['variation'] ?? '[]') ?? [], productQty: $product['current_stock'], quantity: $request['quantity']);
         if ($product['product_type'] == 'physical' && $currentQty < 0) {
             $cartItems = $this->getCartData(cartName: $cartId);
             return response()->json([

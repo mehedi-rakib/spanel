@@ -9307,4 +9307,10 @@ return [
 	"add_new_supplier" => "Add new supplier",
 	"supplier_added_successfully" => "Supplier added successfully",
 	"initial_stock_from_product_creation" => "Initial stock from product creation",
+	"INVOICE" => "INVOICE",
+	"invoice_No" => "Invoice No",
+	"bill_to" => "Bill to",
+	"customer_signature" => "Customer signature",
+	"authorized_signature" => "Authorized signature",
+	"thank_you_for_your_business" => "Thank you for your business",
 ];

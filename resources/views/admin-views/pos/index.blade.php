@@ -149,6 +149,8 @@
 <span id="route-admin-pos-empty-cart" data-url="{{ route('admin.pos.empty-cart') }}"></span>
 <span id="route-admin-pos-update-quantity" data-url="{{ route('admin.pos.update-quantity') }}"></span>
 <span id="route-admin-pos-update-price" data-url="{{ route('admin.pos.update-price') }}"></span>
+<span id="route-admin-pos-scan-barcode" data-url="{{ route('admin.pos.scan-barcode') }}"></span>
+<span id="message-no-product-found-with-this-code" data-text="{{ translate('no_product_found_with_this_code') }}"></span>
 <span id="message-product-price-updated" data-text="{{ translate('product_price_updated') }}"></span>
 <span id="message-price-can-not-be-negative" data-text="{{ translate('price_can_not_be_negative') }}"></span>
 <span id="route-admin-pos-get-variant-price" data-url="{{ route('admin.pos.get-variant-price') }}"></span>

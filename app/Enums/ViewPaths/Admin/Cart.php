@@ -19,6 +19,9 @@ enum Cart
     const PRICE_UPDATE =[
         URI => 'price-update',
     ];
+    const SCAN =[
+        URI => 'scan-barcode',
+    ];
     const ADD =[
         URI => 'add-to-cart',
     ];

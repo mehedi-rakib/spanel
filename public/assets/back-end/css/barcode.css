@@ -44,11 +44,19 @@ p.sansserif {
     margin-right: auto;
 }
 
+/* The barcode SVG (App\Utils\BarcodeLabel) spans the full label width, quiet
+   zones included, so the bars are never clipped by the label's overflow:hidden. */
+.barcode_image svg.barcode-svg {
+    display: block;
+    width: 100%;
+    flex: 0 0 100%;
+}
+
 .barcode-a4 .item {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding: 10px 14px;
+    gap: 3px;
+    padding: 6px 6px;
     overflow: hidden;
     text-align: center;
     border: 1px dotted #ccc;
@@ -77,6 +85,9 @@ p.sansserif {
 .barcode_code {
     display: block;
     font-weight: bold;
+    /* Print the code exactly as encoded, so it can be typed in if a scan fails. */
+    text-transform: none;
+    letter-spacing: 0.5px;
 }
 
 @page {

@@ -15,6 +15,7 @@ use App\Http\Controllers\RestAPI\v4\admin\CustomerController;
 use App\Http\Controllers\RestAPI\v4\admin\CustomerDueController;
 use App\Http\Controllers\RestAPI\v4\admin\DashboardController;
 use App\Http\Controllers\RestAPI\v4\admin\EmployeeController;
+use App\Http\Controllers\RestAPI\v4\admin\ExportController;
 use App\Http\Controllers\RestAPI\v4\admin\OrderController;
 use App\Http\Controllers\RestAPI\v4\admin\POSController;
 use App\Http\Controllers\RestAPI\v4\admin\ProductController;
@@ -33,7 +34,15 @@ Route::group(['namespace' => 'RestAPI\v4\admin', 'prefix' => 'v4/admin', 'middle
         });
     });
 
+    // Opened by the phone's browser / download manager, which can't send the bearer
+    // token; access is granted by the short-lived signature from POST /exports instead.
+    Route::get('exports/download', [ExportController::class, 'download'])
+        ->middleware('signed:relative')
+        ->name('api.v4.admin.exports.download');
+
     Route::group(['middleware' => ['admin_api_auth']], function () {
+        Route::post('exports', [ExportController::class, 'create']);
+
         Route::controller(LoginController::class)->group(function () {
             Route::get('logout', 'logout');
             Route::get('me', 'me');

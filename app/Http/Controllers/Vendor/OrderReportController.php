@@ -323,7 +323,7 @@ class OrderReportController extends Controller
             );
         }
 
-        return (new FastExcel($data))->download('order_report_list.xlsx');
+        return (new FastExcel($data))->configureOptionsUsing(\App\Utils\A4Paper::fastExcelOptions())->download('order_report_list.xlsx');
     }
     public function orderReportExportExcel(Request $request):BinaryFileResponse
     {

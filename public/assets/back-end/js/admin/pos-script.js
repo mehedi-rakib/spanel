@@ -67,7 +67,68 @@ document.addEventListener("keydown", function (event) {
     }
 });
 
-$(".search-bar-input").on("keyup", function () {
+// Barcode scanners type the SKU then press Enter. Enter used to submit the search
+// form (a full page reload); now it adds the exactly-matching product to the cart.
+$(".search-bar-input").on("keydown", function (event) {
+    if (event.key !== "Enter") {
+        return;
+    }
+    event.preventDefault();
+    let code = $(this).val().trim();
+    if (!code) {
+        return;
+    }
+    let input = $(this);
+    $.post({
+        url: $("#route-admin-pos-scan-barcode").data("url"),
+        data: { _token: $('meta[name="_token"]').attr("content"), code: code },
+        beforeSend: function () {
+            $("#loading").fadeIn();
+        },
+        success: function (data) {
+            if (data.status === "added" || data.status === "out_of_stock") {
+                $("#cart").empty().html(data.view);
+                posUpdateQuantityFunctionality();
+                viewAllHoldOrders("keyup");
+                removeFromCart();
+            }
+            if (data.status === "added") {
+                toastr.success(data.name + " — " + $("#message-item-has-been-added-in-your-cart").data("text"), {
+                    CloseButton: true,
+                    ProgressBar: true,
+                });
+                input.val("");
+                $(".search-result-box").empty().hide();
+            } else if (data.status === "out_of_stock") {
+                toastr.warning($("#message-product-quantity-is-not-enough").data("text"), {
+                    CloseButton: true,
+                    ProgressBar: true,
+                });
+                input.val("");
+                $(".search-result-box").empty().hide();
+            } else if (data.status === "options") {
+                // Needs a colour/variation choice: open the normal picker.
+                input.val("");
+                $(".search-result-box").empty().hide();
+                quickView(data.id);
+            } else {
+                toastr.warning($("#message-no-product-found-with-this-code").data("text") + ": " + code, {
+                    CloseButton: true,
+                    ProgressBar: true,
+                });
+            }
+        },
+        complete: function () {
+            $("#loading").fadeOut();
+            input.focus();
+        },
+    });
+});
+
+$(".search-bar-input").on("keyup", function (event) {
+    if (event.key === "Enter") {
+        return;
+    }
     $(".pos-search-card").removeClass("d-none").show();
     let name = $(".search-bar-input").val();
     let elementSearchResultBox = $(".search-result-box");

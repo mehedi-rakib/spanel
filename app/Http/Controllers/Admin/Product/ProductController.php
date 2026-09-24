@@ -754,7 +754,7 @@ class ProductController extends BaseController
 
         $rows = $service->getExportData(fields: $request['fields'], filters: $filters);
 
-        return (new FastExcel($rows))->download('product-bulk-edit.xlsx');
+        return (new FastExcel($rows))->configureOptionsUsing(\App\Utils\A4Paper::fastExcelOptions())->download('product-bulk-edit.xlsx');
     }
 
     public function importBulkEditData(Request $request, ProductBulkEditService $service): RedirectResponse

@@ -68,6 +68,11 @@ class AppServiceProvider extends ServiceProvider
             \URL::forceScheme('https');
         }
 
+        // Every Laravel-Excel export in the panel prints on A4.
+        \Maatwebsite\Excel\Sheet::listen(\Maatwebsite\Excel\Events\AfterSheet::class, function ($event) {
+            \App\Utils\A4Paper::applyToWorksheet($event->sheet->getDelegate());
+        });
+
         if (!App::runningInConsole()) {
             Paginator::useBootstrap();
 

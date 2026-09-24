@@ -3,7 +3,7 @@
 This document describes the REST API this Laravel panel exposes for a companion **admin/employee mobile app** (built for a single local shop — not a multi-vendor marketplace). It's written so an AI assistant (or a developer) can scaffold a **React Native (Expo)** app against it without reading the backend source.
 
 - Base path: `/api/v4/admin`
-- Full base URL (dev example): `http://spanel.test/api/v4/admin`
+- Full base URL (dev example): `https://panel.sultantl.com/api/v4/admin`
 - Full base URL (prod example): `https://your-domain.com/api/v4/admin`
 - Format: JSON in, JSON out. Send `Accept: application/json`.
 - Auth: Bearer token (see below).
@@ -138,9 +138,29 @@ Response `200`:
   "total_customers": 42,
   "total_employees": 3,
   "low_stock_products": 5,
-  "recent_stock_movements": [ /* last 10 StockHistory rows, see §5.6 */ ]
+  "recent_stock_movements": [ /* last 10 StockHistory rows, see §5.6 */ ],
+
+  "receivable": 1081865.00,
+  "customers_with_due": 42,
+  "month": {
+    "label": "Sep", "from_date": "2026-09-01", "to_date": "2026-09-30",
+    "total_sales": 1566200.00, "total_orders": 330, "collected": 857250.00,
+    "purchases": 1317405.00, "profit": 210400.00
+  },
+  "sale_overview": {
+    "current_year": 2026, "last_year": 2025,
+    "total_sale": 1566200.00, "previous_month_sale": 2654576.00,
+    "change_percent": -41.0,
+    "series": [ { "month": "Apr", "current": 0, "last": 0 }, /* ...6 months, oldest first */ ]
+  },
+  "today": { "total_orders": 12, "total_sales": 45000.00, "cash_in": 38000.00 },
+  "inventory": {
+    "stock_value": 10354997.00, "total_items": 4124, "low_stock_count": 587,
+    "low_stock_items": [ { "id": 1, "name": "...", "code": "...", "current_stock": -2 } ]
+  }
 }
 ```
+Everything from `receivable` down was added for the mobile Dashboard. Sales figures exclude `canceled`, `failed` and `returned` orders. `change_percent` is `null` when last month had no sales. `stock_value` ignores negative stock. `today.cash_in` = money received on today's sales + customer due paid back today.
 
 ### 4.3 Categories & Brands (read-only, for pickers/dropdowns)
 | Method | Path | Notes |
@@ -157,13 +177,13 @@ Response `200`:
 ### 4.5 Products
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/products` | `?searchValue=`, `?category_id=`, `?sub_category_id=`, `?brand_id=`, `?status=`, `?limit=`. Paginated. |
+| GET | `/products` | `?searchValue=` (matches name **or** code), `?category_id=`, `?sub_category_id=`, `?brand_id=`, `?status=`, `?stock=low\|out` (low = below the panel's stock limit, out = 0 or less; sorted by stock ascending), `?limit=`. Paginated, each item includes `category: {id, name}`. |
 | GET | `/products/{id}` | Includes `category`, `brand`, `translations` relations. 404 `product-001`. |
 | POST | `/products` | Create a **physical** product (see body below) |
 | POST | `/products/{id}` | Partial update — only whitelisted fields (see below), `current_stock` is deliberately NOT editable here |
 | DELETE | `/products/{id}` | Deletes product + its translations |
 | POST | `/products/{id}/stock` | Manual stock adjustment (in/out), logged to stock history |
-| POST | `/products/purchase` | Bulk stock-in from a supplier purchase, logged to stock history and updates `purchase_price` |
+| POST | `/products/purchase` | Bulk stock-in from a supplier purchase, logged to stock history and updates `purchase_price`. Requires `supplier_id`. |
 
 **Create product** body:
 ```json
@@ -199,6 +219,7 @@ Response `200`:
 **Purchase stock** (`POST /products/purchase`) — stock-in from a supplier, optionally updates cost price:
 ```json
 {
+  "supplier_id": 4,
   "reference_no": "PO-1001",
   "items": [
     { "product_id": 506, "qty": 20, "unit_cost": 150, "note": "optional" },
@@ -206,7 +227,30 @@ Response `200`:
   ]
 }
 ```
-If `unit_cost` is given for an item, that product's `purchase_price` is updated to it. `reference_no` is optional — if omitted here, note it's auto-generated only by the web Purchase page, not this raw endpoint (send your own reference if you want one, e.g. a timestamp or PO number, for grouping in reports later).
+`supplier_id` is **required** (must be an existing supplier — see §4.5a) and is stamped on every `StockHistory` row created by this call. If `unit_cost` is given for an item, that product's `purchase_price` is updated to it. `reference_no` is optional — if omitted, one is generated (`PUR-yymmddHHMMSS-XXX`). Every line of the call shares it, which is what groups them into one purchase bill (§4.13). Response: `{ "updated": 2, "reference_no": "PUR-...", "items": [ /* StockHistory rows */ ] }`.
+
+> Before this fix, `POST /products/purchase` was shadowed by `POST /products/{id}` (routes were registered in the wrong order), so it actually ran a product update with id `purchase` and never added stock. The `{id}` routes are now numeric-only and `purchase` is registered first.
+
+### 4.5a Suppliers
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/suppliers` | `?searchValue=` (matches name/shop_name/phone), `?status=`, `?limit=`. Paginated. |
+| GET | `/suppliers/{id}` | 404 `supplier-001` if missing |
+| POST | `/suppliers` | Create a supplier (see body below) |
+| POST | `/suppliers/{id}` | Update a supplier — same body shape as create |
+| DELETE | `/suppliers/{id}` | Delete a supplier |
+
+**Create/update supplier** body:
+```json
+{
+  "name": "ABC Wholesale",
+  "shop_name": "ABC Trading House",
+  "phone": "+8801xxxxxxxxx",
+  "email": "abc@example.com",
+  "address": "123 Market Road"
+}
+```
+Only `name` is required. New suppliers are created with `status: 1` (active). Use this endpoint for the purchase screen's "add new supplier" flow — same pattern as picking/adding a customer at POS checkout.
 
 ### 4.6 Stock History
 | Method | Path | Notes |
@@ -275,8 +319,16 @@ Error cases:
 ### 4.9 Customers
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/customers` | `?searchValue=`, `?is_active=`, `?limit=`. Paginated. |
+| GET | `/customers` | `?searchValue=`, `?is_active=`, `?has_due=1` (only customers who owe money, highest first), `?limit=`. Paginated. Never includes the walking customer (id 0). |
 | GET | `/customers/{id}` | Includes last 10 `orders` and last 10 `dueTransactions`. 404 `customer-001`. |
+| POST | `/customers` | Quick-add a customer (POS "Add New Customer"). Returns `201` + the customer. |
+| POST | `/customers/{id}` | Update a customer — same body as create. |
+
+Create/update body — only `name` and `phone` are required; `phone` and `email` must be unique (403 with `code: "phone"` / `"email"` otherwise):
+```json
+{ "name": "Kabir Motalab Plaza", "phone": "01700000000", "email": "optional@example.com", "address": "optional" }
+```
+`name` is split into `f_name` (first word) / `l_name` (rest). The account gets a random password; the customer can claim it later via the storefront's forgot-password flow. `name` is always filled in responses (falls back to `f_name l_name`, then phone) because customers created on the web panel often have no `name`.
 
 Customer object includes `due_balance` (float, how much they currently owe the shop) and `wallet_balance` (float, unrelated prepaid credit feature — opposite direction, not used by POS due sales).
 
@@ -329,10 +381,29 @@ Response `201`: the created `CustomerDueTransaction`. Fails `422` `customer-due-
 ### 4.11 Reports
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/reports/sales` | `?from_date=YYYY-MM-DD&to_date=YYYY-MM-DD` (default: last 30 days) |
+| GET | `/reports/sales` | `?from_date=YYYY-MM-DD&to_date=YYYY-MM-DD` (default: last 30 days), optional `?payment_status=paid\|partial\|due`, `?customer_id=`, `?searchValue=`, `?limit=&page=` for the `transactions` list |
+| GET | `/reports/purchases` | `?from_date=&to_date=`, optional `?supplier_id=`, `?searchValue=` — purchase totals + paginated `bills` (§4.13) |
+| GET | `/reports/item-sales` | `?from_date=&to_date=`, optional `?searchValue=` — qty/amount/profit per item, best sellers first |
 | GET | `/reports/stock` | Current inventory snapshot, `?limit=` for the low-stock list size |
 | GET | `/reports/profit-loss` | `?from_date=&to_date=` — revenue vs. cost of goods sold |
 | GET | `/reports/due` | Outstanding-credit summary, `?limit=` for the top-debtors list size |
+
+All sales totals (sales report, item sales, dashboard) exclude `canceled`, `failed` and `returned` orders.
+
+`/reports/sales` also returns `transactions`: a paginated list of `{ id, customer_id, customer_name, order_amount, paid_amount, balance, payment_status, payment_method, order_status, created_at }`.
+
+`/reports/purchases` response:
+```json
+{ "from_date": "...", "to_date": "...", "total_bills": 12, "total_qty": 340, "total_amount": 1317405.00, "bills": { /* paginated PurchaseBill, §4.13 */ } }
+```
+
+`/reports/item-sales` response:
+```json
+{
+  "from_date": "...", "to_date": "...", "total_qty": 3, "total_amount": 4300.00, "total_profit": 2765.00,
+  "items": { /* paginated */ "data": [ { "product_id": 1, "name": "...", "code": "...", "qty": 2, "amount": 4000.00, "cost": 1500.00, "profit": 2500.00 } ] }
+}
+```
 
 `/reports/sales` response:
 ```json
@@ -375,6 +446,58 @@ Response `201`: the created `CustomerDueTransaction`. Fails `422` `customer-due-
   "top_debtors": [ { "id": 15, "f_name": "Jisan", "l_name": "RABBY", "phone": "+8801...", "due_balance": 700.00 } ]
 }
 ```
+
+### 4.12 Transactions (Home feed / Day Book)
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/transactions` | Newest-first feed of sales, customer due pay-backs and purchase bills. `?type=sale\|payment_in\|purchase`, `?searchValue=` (party name/phone, order id, bill no.), `?from_date=&to_date=`, `?limit=&page=`. Paginated. |
+
+Row shape:
+```json
+{
+  "type": "sale", "reference": "100001", "party_id": 15, "party_name": "Kabir Plaza",
+  "total": 4000.00, "balance": 2500.00, "status": "partial", "order_status": "delivered",
+  "created_at": "2026-09-18T13:24:00.000000Z"
+}
+```
+- `sale`: `reference` = order id, `balance` = unpaid part of that sale. Includes all order statuses (so canceled sales are still visible in the feed).
+- `payment_in`: `reference` = due-transaction id, `total` = amount paid back, `balance` = the customer's due after this payment.
+- `purchase`: `reference` = bill reference (open it with `GET /purchases/{reference}`), `party_*` = supplier, `balance` is always 0 (supplier payables aren't tracked).
+
+### 4.13 Purchase bills
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/purchases` | `?searchValue=` (bill no. / supplier), `?supplier_id=`, `?from_date=&to_date=`. Paginated `PurchaseBill` list. |
+| GET | `/purchases/{reference}` | One bill with its lines. 404 `purchase-001`. URL-encode the reference. |
+
+There's no bills table: `POST /products/purchase` writes one stock-history row per item, all sharing a `reference_no` (auto-generated as `PUR-yymmddHHMMSS-XXX` when you don't send one, and returned in the response). Bills are those rows grouped by reference. Older rows without a reference show up as one-line bills keyed `SH-<stock history id>`.
+
+`PurchaseBill`: `{ reference_no, supplier_id, supplier_name, created_at, item_count, total_qty, total_amount }`.
+`GET /purchases/{reference}` adds `supplier` (full object) and `items: [{ id, product_id, product_name, product_code, qty, unit_cost, line_total, previous_stock, new_stock, note, created_at }]`.
+
+`GET /suppliers/{id}` also returns `total_purchase_amount`, `total_purchase_bills` and `recent_bills` (last 10 `PurchaseBill`s).
+
+### 4.14 PDF / Excel exports
+| Method | Path | Notes |
+|---|---|---|
+| POST | `/exports` | Authenticated. Body: `type`, `format` (`pdf` \| `xlsx`) + the filters below. Returns `{ "path": "/api/v4/admin/exports/download?...&signature=...", "expires_at": "..." }`. |
+| GET | `/exports/download` | **No bearer token** — protected by the signature in the query string (valid 15 min, any tampering → 403). Streams the file with `Content-Disposition: attachment`. |
+
+A browser / download manager can't send the bearer token, so the app first asks for a signed link and then opens it (`Linking.openURL`). `path` is relative to the panel root, i.e. prepend the API base URL minus `/api/v4/admin`. The signature is relative (path + query only), so it still validates behind a proxy that changes scheme or host. Files are generated on request and never stored on the server.
+
+| `type` | Filters | Content |
+|---|---|---|
+| `invoice` | `id` (order id) | Invoice layout: bill-to, items, total / received / due |
+| `purchase-bill` | `reference` | One purchase bill's lines |
+| `sale-report` | `from_date`, `to_date`, `payment_status`, `customer_id` | Same data as `/reports/sales`, every row |
+| `purchase-report` | `from_date`, `to_date`, `supplier_id` | Same as `/reports/purchases` |
+| `item-sales` | `from_date`, `to_date`, `searchValue` | Same as `/reports/item-sales` |
+| `stock-summary` | `stock` (`low`\|`out`), `searchValue` | Every item: stock, purchase/sale price, stock value |
+| `profit-loss` | `from_date`, `to_date` | Sale, cost of goods, net profit/loss |
+| `daybook` | `date` | One day's transactions with money in / out |
+| `due` | — | Every customer who owes money |
+
+PDFs use mpdf with the FreeSerif font (covers ৳ and Bangla names) and lakh-grouped amounts; Excel files keep amounts as real numbers (`#,##0.00`) and phone numbers / codes as text. The company name, phone, email and address in the header come from the panel's business settings.
 
 ---
 
@@ -436,14 +559,23 @@ Customer id `0` is the built-in "Walking Customer" placeholder used for anonymou
 ### 5.6 StockHistory
 ```json
 {
-  "id": 7, "product_id": 15505, "type": "order",
+  "id": 7, "product_id": 15505, "supplier_id": null, "type": "order",
   "quantity_change": -1, "previous_stock": 100, "new_stock": 99,
   "unit_cost": null, "reference_no": "order-100003", "note": null,
   "admin_id": 1, "created_at": "...",
-  "product": { /* Product */ }, "admin": { /* Admin */ }
+  "product": { /* Product */ }, "admin": { /* Admin */ }, "supplier": null
 }
 ```
-`quantity_change` is signed: negative = stock left (sale/adjustment out), positive = stock came in (purchase/adjustment in/initial).
+`quantity_change` is signed: negative = stock left (sale/adjustment out), positive = stock came in (purchase/adjustment in/initial). `supplier_id`/`supplier` are only populated on `type: "purchase"` rows.
+
+### 5.7 Supplier
+```json
+{
+  "id": 4, "name": "ABC Wholesale", "shop_name": "ABC Trading House",
+  "phone": "+8801xxxxxxxxx", "email": "abc@example.com", "address": "123 Market Road",
+  "status": 1, "admin_id": 1, "created_at": "..."
+}
+```
 
 ---
 
@@ -473,7 +605,7 @@ app/
       index.tsx           -> GET /products
       [id].tsx            -> GET /products/{id}, POST /products/{id}, POST /products/{id}/stock
       add.tsx             -> POST /products
-      purchase.tsx        -> POST /products/purchase
+      purchase.tsx        -> GET /suppliers, POST /suppliers, POST /products/purchase
     stock-history/
       index.tsx           -> GET /stock-history
     orders/
@@ -497,6 +629,8 @@ app/
 ```
 
 ### 7.1 Visual theme — Black & Red
+
+> The current app has moved to a lighter layout (white header and cards on a light-blue `#E8F1FC` canvas, blue `#1A73E8` accents and links, red `#E1122F` kept for the floating "Add New Sale/Item" buttons). See `src/theme/theme.ts`. The original black & red guidance is kept below for reference.
 
 The web panel uses a **black & red** brand theme. Match it in the Expo app for a consistent brand feel:
 
