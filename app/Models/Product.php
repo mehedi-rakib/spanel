@@ -400,7 +400,9 @@ class Product extends Model
     public function getColorImagesFullUrlAttribute(): array
     {
         $images = [];
-        $value = json_decode($this->color_image);
+        // Skip empty values: json_decode('') leaves json_last_error() set, and Laravel's
+        // JsonResponse then rejects the whole response with "Syntax error".
+        $value = $this->color_image ? json_decode($this->color_image) : null;
         if ($value) {
             foreach ($value as $item) {
                 $item = (array)$item;
@@ -416,7 +418,7 @@ class Product extends Model
     public function getImagesFullUrlAttribute(): array
     {
         $images = [];
-        $value = json_decode($this->images);
+        $value = $this->images ? json_decode($this->images) : null;
          if ($value){
              foreach ($value as $item){
                  $item = isset($item->image_name) ? (array)$item : ['image_name' => $item, 'storage' => 'public'];
