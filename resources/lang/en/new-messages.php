@@ -9301,4 +9301,10 @@ return [
 	"total_revenue" => "Total revenue",
 	"report_summary" => "Report summary",
 	"purchase_not_found" => "Purchase not found",
+	"suppliers" => "Suppliers",
+	"supplier" => "Supplier",
+	"select_supplier" => "Select supplier",
+	"add_new_supplier" => "Add new supplier",
+	"supplier_added_successfully" => "Supplier added successfully",
+	"initial_stock_from_product_creation" => "Initial stock from product creation",
 ];

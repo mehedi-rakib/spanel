@@ -13,7 +13,7 @@ use Illuminate\Http\Request;
 
 class SupplierController extends BaseController
 {
-    public function index(Request $request): View
+    public function index(Request|null $request, string $type = null): View
     {
         $searchValue = $request['searchValue'];
 

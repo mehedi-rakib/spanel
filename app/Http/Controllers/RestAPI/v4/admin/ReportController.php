@@ -190,7 +190,7 @@ class ReportController extends Controller
         $totals = (clone $base)->selectRaw('
             COUNT(*) as total_products,
             COALESCE(SUM(current_stock), 0) as total_units,
-            COALESCE(SUM(current_stock * purchase_price), 0) as total_stock_value,
+            COALESCE(SUM(CASE WHEN current_stock > 0 THEN current_stock * purchase_price ELSE 0 END), 0) as total_stock_value,
             SUM(CASE WHEN current_stock <= 0 THEN 1 ELSE 0 END) as out_of_stock_count,
             SUM(CASE WHEN current_stock > 0 AND current_stock < ? THEN 1 ELSE 0 END) as low_stock_count
         ', [$stockLimit])->first();
