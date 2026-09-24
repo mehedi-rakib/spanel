@@ -16,6 +16,9 @@ enum Cart
     const QUANTITY_UPDATE =[
         URI => 'quantity-update',
     ];
+    const PRICE_UPDATE =[
+        URI => 'price-update',
+    ];
     const ADD =[
         URI => 'add-to-cart',
     ];

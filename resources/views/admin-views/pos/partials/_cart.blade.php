@@ -39,9 +39,14 @@
                                     data-product-variant="{{ $item['variant'] }}">
                             </td>
                             <td>
-                                <div>
+                                <input type="number" class="form-control min-w-100 action-pos-update-price"
+                                    value="{{ round(usdToDefaultCurrency(amount: $item['price']), 2) }}" min="0" step="any"
+                                    title="{{ translate('unit_price') }}"
+                                    data-product-key="{{ $item['id'] }}"
+                                    data-product-variant="{{ $item['variant'] }}">
+                                <small class="d-block mt-1 text-nowrap">
                                     {{ setCurrencySymbol(amount: usdToDefaultCurrency(amount:$item['productSubtotal']), currencyCode: getCurrencyCode()) }}
-                                </div>
+                                </small>
                             </td>
                             <td>
                                 <div class="d-flex justify-content-center">

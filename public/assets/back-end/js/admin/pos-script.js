@@ -573,6 +573,42 @@ function posUpdateQuantityFunctionality() {
         let variant = $(this).data("product-variant");
         getPOSUpdateQuantity(getKey, quantity, event, variant);
     });
+    posUpdatePriceFunctionality();
+}
+
+// The cashier can set any unit price per cart line (no min/max rule), only not negative.
+function posUpdatePriceFunctionality() {
+    $(".action-pos-update-price").off("change").on("change", function () {
+        let price = $(this).val();
+        if (price === "" || isNaN(price) || parseFloat(price) < 0) {
+            toastr.warning($("#message-price-can-not-be-negative").data("text"), {
+                CloseButton: true,
+                ProgressBar: true,
+            });
+            price = "";
+        }
+        $.post(
+            $("#route-admin-pos-update-price").data("url"),
+            {
+                _token: $('meta[name="_token"]').attr("content"),
+                key: $(this).data("product-key"),
+                variant: $(this).data("product-variant"),
+                price: price,
+            },
+            function (data) {
+                if (data.priceUpdate == 1) {
+                    toastr.success($("#message-product-price-updated").data("text"), {
+                        CloseButton: true,
+                        ProgressBar: true,
+                    });
+                }
+                $("#cart").empty().html(data.view);
+                posUpdateQuantityFunctionality();
+                viewAllHoldOrders("keyup");
+                removeFromCart();
+            }
+        );
+    });
 }
 
 function getPOSUpdateQuantity(key, qty, e, variant = null) {

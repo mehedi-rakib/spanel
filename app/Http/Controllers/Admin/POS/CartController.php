@@ -99,6 +99,23 @@ class CartController extends BaseController
         }
     }
 
+    public function updatePrice(Request $request): JsonResponse
+    {
+        $cartId = session(SessionKey::CURRENT_USER);
+        $price = $request['price'];
+        $valid = is_numeric($price) && (float)$price >= 0;
+        if ($valid) {
+            // The cashier types in the display currency; the cart stores base currency.
+            $request->merge(['price' => currencyConverter(amount: (float)$price)]);
+            $this->cartService->updatePrice(request: $request);
+        }
+        $cartItems = $this->getCartData(cartName: $cartId);
+        return response()->json([
+            'priceUpdate' => $valid ? 1 : 0,
+            'view' => view(Cart::CART[VIEW], compact('cartId', 'cartItems'))->render(),
+        ]);
+    }
+
     public function addToCart(Request $request): JsonResponse
     {
         $cartId = session(SessionKey::CURRENT_USER);

@@ -148,6 +148,9 @@
 <span id="route-admin-pos-remove-cart" data-url="{{ route('admin.pos.remove-cart') }}"></span>
 <span id="route-admin-pos-empty-cart" data-url="{{ route('admin.pos.empty-cart') }}"></span>
 <span id="route-admin-pos-update-quantity" data-url="{{ route('admin.pos.update-quantity') }}"></span>
+<span id="route-admin-pos-update-price" data-url="{{ route('admin.pos.update-price') }}"></span>
+<span id="message-product-price-updated" data-text="{{ translate('product_price_updated') }}"></span>
+<span id="message-price-can-not-be-negative" data-text="{{ translate('price_can_not_be_negative') }}"></span>
 <span id="route-admin-pos-get-variant-price" data-url="{{ route('admin.pos.get-variant-price') }}"></span>
 <span id="route-admin-pos-change-cart-editable" data-url="{{ route('admin.pos.change-cart').'/?cart_id=:value' }}"></span>
 

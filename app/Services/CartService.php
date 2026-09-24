@@ -282,6 +282,39 @@ class CartService
         return $quantity;
     }
 
+    /**
+     * Sets a cashier-entered unit price on one cart line. There is deliberately no
+     * min/max check (below cost, above list price, zero are all allowed): the typed
+     * price is the final unit price, so the product's own discount no longer applies.
+     */
+    public function updatePrice(object $request): bool
+    {
+        $cartId = session(SessionKey::CURRENT_USER);
+        $cart = session($cartId);
+        if (!$cart) {
+            return false;
+        }
+
+        $updated = false;
+        $keeper = [];
+        foreach ($cart as $key => $item) {
+            if (is_array($item)) {
+                $sameVariant = empty($request['variant']) ? empty($item['variant']) : ($item['variant'] == $request['variant']);
+                if ($item['id'] == $request['key'] && $sameVariant) {
+                    $item['price'] = (float)$request['price'];
+                    $item['discount'] = 0;
+                    $item['price_overridden'] = true;
+                    $updated = true;
+                }
+                $keeper[] = $item;
+            } else {
+                $keeper[$key] = $item;
+            }
+        }
+        session()->put($cartId, $keeper);
+        return $updated;
+    }
+
     public function getNewCartId(): void
     {
         $cartId = 'walking-customer-' . rand(10, 1000);
@@ -294,7 +327,9 @@ class CartService
     public function getCartSubtotalCalculation(object $product, array $cartItem, array $calculation): array
     {
         $taxCalculate = $product['tax_model'] == 'include' ? 0 : $this->getTaxAmount($cartItem['price'], $product['tax']) * $cartItem['quantity'];
-        $discount = getProductPriceByType(product: $product, type: 'discounted_amount', result: 'value', price: $cartItem['price'], from: 'panel');
+        $discount = !empty($cartItem['price_overridden'])
+            ? 0
+            : getProductPriceByType(product: $product, type: 'discounted_amount', result: 'value', price: $cartItem['price'], from: 'panel');
         $productSubtotal = (($cartItem['price'] - $discount) * $cartItem['quantity']) - ($product['tax_model'] == 'include' ? $taxCalculate : 0);
         return [
             'countItem' => 1,

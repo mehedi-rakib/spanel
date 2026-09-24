@@ -143,7 +143,10 @@ class POSOrderController extends BaseController
 
                     $digitalProductVariation = $this->digitalProductVariationRepo->getFirstWhere(params: ['product_id' => $item['id'], 'variant_key' => $item['variant']], relations: ['storage']);
                     if ($product['product_type'] == 'digital' && $digitalProductVariation) {
-                        $price = $product['tax_model'] == 'include' ? $digitalProductVariation['price'] - $tax : $digitalProductVariation['price'];
+                        // A price the cashier typed in the cart wins over the variation's list price.
+                        if (empty($item['price_overridden'])) {
+                            $price = $product['tax_model'] == 'include' ? $digitalProductVariation['price'] - $tax : $digitalProductVariation['price'];
+                        }
 
                         if ($product['digital_product_type'] == 'ready_product') {
                             $getStoragePath = $this->storageRepo->getFirstWhere(params: [

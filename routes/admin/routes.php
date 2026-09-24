@@ -221,6 +221,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['admin']],
         Route::controller(CartController::class)->group(function () {
             Route::post(Cart::VARIANT[URI], 'getVariantPrice')->name('get-variant-price');
             Route::post(Cart::QUANTITY_UPDATE[URI], 'updateQuantity')->name('update-quantity');
+            Route::post(Cart::PRICE_UPDATE[URI], 'updatePrice')->name('update-price');
             Route::get(Cart::GET_CART_IDS[URI], 'getCartIds')->name('get-cart-ids');
             Route::get(Cart::CLEAR_CART_IDS[URI], 'clearSessionCartIds')->name('clear-cart-ids');
             Route::post(Cart::ADD[URI], 'addToCart')->name('add-to-cart');
