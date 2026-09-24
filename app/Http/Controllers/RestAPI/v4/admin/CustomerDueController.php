@@ -5,6 +5,7 @@ namespace App\Http\Controllers\RestAPI\v4\admin;
 use App\Contracts\Repositories\CustomerDueTransactionRepositoryInterface;
 use App\Contracts\Repositories\CustomerRepositoryInterface;
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Services\CustomerDueService;
 use App\Utils\Helpers;
 use Illuminate\Http\Request;
@@ -26,12 +27,24 @@ class CustomerDueController extends Controller
      */
     public function index(Request $request)
     {
-        $customers = $this->customerRepo->getListWhere(
-            orderBy: ['due_balance' => 'desc'],
-            searchValue: $request['searchValue'],
-            filters: [],
-            dataLimit: $request['limit'] ?? DEFAULT_DATA_LIMIT
-        );
+        $searchValue = $request['searchValue'];
+        $customers = User::query()
+            ->where('due_balance', '>', 0)
+            ->when($searchValue, function ($query) use ($searchValue) {
+                $query->where(function ($query) use ($searchValue) {
+                    $query->where('name', 'like', "%{$searchValue}%")
+                        ->orWhere('f_name', 'like', "%{$searchValue}%")
+                        ->orWhere('l_name', 'like', "%{$searchValue}%")
+                        ->orWhere('phone', 'like', "%{$searchValue}%");
+                });
+            })
+            ->orderByDesc('due_balance')
+            ->paginate($request['limit'] ?? DEFAULT_DATA_LIMIT);
+
+        $customers->getCollection()->transform(function ($customer) {
+            $customer->name = $customer->name ?: (trim($customer->f_name . ' ' . $customer->l_name) ?: $customer->phone);
+            return $customer;
+        });
 
         $totalDue = (float)DB::table('users')->sum('due_balance');
 

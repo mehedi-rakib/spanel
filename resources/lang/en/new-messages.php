@@ -9300,4 +9300,5 @@ return [
 	"use_the_Purchase_or_Stock_History_page_to_change_stock" => "Use the Purchase or Stock History page to change stock",
 	"total_revenue" => "Total revenue",
 	"report_summary" => "Report summary",
+	"purchase_not_found" => "Purchase not found",
 ];

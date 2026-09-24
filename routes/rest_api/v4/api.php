@@ -18,9 +18,11 @@ use App\Http\Controllers\RestAPI\v4\admin\EmployeeController;
 use App\Http\Controllers\RestAPI\v4\admin\OrderController;
 use App\Http\Controllers\RestAPI\v4\admin\POSController;
 use App\Http\Controllers\RestAPI\v4\admin\ProductController;
+use App\Http\Controllers\RestAPI\v4\admin\PurchaseController;
 use App\Http\Controllers\RestAPI\v4\admin\ReportController;
 use App\Http\Controllers\RestAPI\v4\admin\StockHistoryController;
 use App\Http\Controllers\RestAPI\v4\admin\SupplierController;
+use App\Http\Controllers\RestAPI\v4\admin\TransactionController;
 use Illuminate\Support\Facades\Route;
 
 Route::group(['namespace' => 'RestAPI\v4\admin', 'prefix' => 'v4/admin', 'middleware' => ['api_lang']], function () {
@@ -55,13 +57,24 @@ Route::group(['namespace' => 'RestAPI\v4\admin', 'prefix' => 'v4/admin', 'middle
         });
 
         Route::controller(ProductController::class)->group(function () {
-            Route::get('products', 'index');
-            Route::get('products/{id}', 'show');
-            Route::post('products', 'store');
-            Route::post('products/{id}', 'update');
-            Route::delete('products/{id}', 'destroy');
-            Route::post('products/{id}/stock', 'updateStock');
+            // Registered before products/{id} (which is also numeric-only) so
+            // "purchase" is never captured as a product id.
             Route::post('products/purchase', 'purchase');
+            Route::get('products', 'index');
+            Route::get('products/{id}', 'show')->whereNumber('id');
+            Route::post('products', 'store');
+            Route::post('products/{id}', 'update')->whereNumber('id');
+            Route::delete('products/{id}', 'destroy')->whereNumber('id');
+            Route::post('products/{id}/stock', 'updateStock')->whereNumber('id');
+        });
+
+        Route::controller(PurchaseController::class)->group(function () {
+            Route::get('purchases', 'index');
+            Route::get('purchases/{reference}', 'show');
+        });
+
+        Route::controller(TransactionController::class)->group(function () {
+            Route::get('transactions', 'index');
         });
 
         Route::controller(StockHistoryController::class)->group(function () {
@@ -90,6 +103,8 @@ Route::group(['namespace' => 'RestAPI\v4\admin', 'prefix' => 'v4/admin', 'middle
         Route::controller(CustomerController::class)->group(function () {
             Route::get('customers', 'index');
             Route::get('customers/{id}', 'show');
+            Route::post('customers', 'store');
+            Route::post('customers/{id}', 'update');
         });
 
         Route::controller(CustomerDueController::class)->group(function () {
@@ -103,6 +118,8 @@ Route::group(['namespace' => 'RestAPI\v4\admin', 'prefix' => 'v4/admin', 'middle
             Route::get('reports/stock', 'stock');
             Route::get('reports/profit-loss', 'profitLoss');
             Route::get('reports/due', 'due');
+            Route::get('reports/purchases', 'purchases');
+            Route::get('reports/item-sales', 'itemSales');
         });
     });
 });

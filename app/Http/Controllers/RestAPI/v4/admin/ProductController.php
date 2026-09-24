@@ -5,6 +5,7 @@ namespace App\Http\Controllers\RestAPI\v4\admin;
 use App\Contracts\Repositories\ProductRepositoryInterface;
 use App\Contracts\Repositories\TranslationRepositoryInterface;
 use App\Http\Controllers\Controller;
+use App\Models\Product;
 use App\Services\StockHistoryService;
 use App\Utils\Helpers;
 use Illuminate\Http\Request;
@@ -27,6 +28,12 @@ class ProductController extends Controller
     {
     }
 
+    /**
+     * Queried directly rather than through ProductRepository::getListWhere, whose
+     * search only matches `code` when a code filter is passed and uses an ungrouped
+     * orWhere that silently drops the other filters (e.g. status) while searching.
+     * `?stock=low|out` narrows to low-stock / out-of-stock items.
+     */
     public function index(Request $request)
     {
         $filters = array_filter([
@@ -36,12 +43,22 @@ class ProductController extends Controller
             'status' => $request['status'],
         ], fn($value) => $value !== null && $value !== '');
 
-        $products = $this->productRepo->getListWhere(
-            orderBy: ['id' => 'desc'],
-            searchValue: $request['searchValue'],
-            filters: $filters,
-            dataLimit: $request['limit'] ?? DEFAULT_DATA_LIMIT
-        );
+        $searchValue = $request['searchValue'];
+        $stockLimit = (int)(getWebConfig(name: 'stock_limit') ?? 10);
+
+        $products = Product::query()
+            ->with(['category:id,name'])
+            ->where($filters)
+            ->when($searchValue, function ($query) use ($searchValue) {
+                $query->where(function ($query) use ($searchValue) {
+                    $query->where('name', 'like', "%{$searchValue}%")
+                        ->orWhere('code', 'like', "%{$searchValue}%");
+                });
+            })
+            ->when($request['stock'] === 'low', fn($query) => $query->where('product_type', 'physical')->where('current_stock', '<', $stockLimit))
+            ->when($request['stock'] === 'out', fn($query) => $query->where('product_type', 'physical')->where('current_stock', '<=', 0))
+            ->orderBy($request['stock'] ? 'current_stock' : 'id', $request['stock'] ? 'asc' : 'desc')
+            ->paginate($request['limit'] ?? DEFAULT_DATA_LIMIT);
 
         return response()->json($products, 200);
     }
@@ -192,7 +209,9 @@ class ProductController extends Controller
         }
 
         $supplierId = (int)$request['supplier_id'];
-        $referenceNo = $request['reference_no'] ?? null;
+        // Every line of one purchase shares this, which is what groups them into a
+        // single bill for GET /purchases and the purchase report.
+        $referenceNo = $request['reference_no'] ?: 'PUR-' . now()->format('ymdHis') . '-' . Str::upper(Str::random(3));
         $results = [];
         foreach ($request['items'] as $item) {
             $unitCost = isset($item['unit_cost']) && $item['unit_cost'] !== '' ? (float)$item['unit_cost'] : null;
@@ -217,6 +236,6 @@ class ProductController extends Controller
             }
         }
 
-        return response()->json(['updated' => count($results), 'items' => $results], 200);
+        return response()->json(['updated' => count($results), 'reference_no' => $referenceNo, 'items' => $results], 200);
     }
 }
